@@ -130,10 +130,22 @@ class RestAPI(SingletonMixin):
         with open('../../login_sessions/'+login_session,'r') as session:
             user.id = session.read()
              
-        if request.args.get('remote_user').strip()==user.id.strip():
-            flask_login.login_user(user)
-            return flask.redirect(flask.url_for('home'))
-        return "Invalid Login"
+        if request.args.get('remote_user').strip()!=user.id.strip():
+            return "Invalid Login"
+   
+        # TODO: Check to make sure the token isn't old.
+        #       I may do this through authentication manager 
+        #       and include in every function.
+        '''
+        import time
+        timestamp = int(time.time())
+        print int(login_session.split('.')[0]),timestamp
+        '''
+
+        AuthorizationInspector.instance().add_user(user)
+
+        flask_login.login_user(user)
+        return flask.redirect(flask.url_for('home'))
 
     # This maintains the state of a logged in user.
     @staticmethod
@@ -162,7 +174,7 @@ class RestAPI(SingletonMixin):
             for i in  data['nodes']:
                 if 'id' in i and 'org' in i:
                     points.append(Markup('<option value="{}">{}</option>'.format(i['id'],i['friendlyname'])))
-            
+
             # Pass to flask to render a template
             return flask.render_template('index.html',points=points,current_user=flask_login.current_user)
     
