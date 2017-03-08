@@ -1,0 +1,51 @@
+{
+  "user_policy": {
+    "enable_defaults": true,
+    "creation_defaults": {
+      "no_show_creator": "ADMIN",
+      "display_bw_use": true,
+      "display_bw_limit": true,
+      "display_bw_guarantee": true
+    },
+    "delete_defaults": {
+      "flag": true,
+      "handle_existing_rules": "EXPIRE",
+      "handle_tokens": "MARK",
+      "save_auth": true,
+      "save_settings": true,
+      "save_rules": true
+    },
+    "token_management": {
+      "allow_multiple_login": false,
+      "accept_latest_token": true,
+      "notify_user": true,
+      "delete_other_token": false
+    }
+  },
+  "bandwidth_defaults": {
+    "per_user": true,
+    "limit_policy": "CONSTANT",
+    "default_bw_limit": 10000,
+    "excede_limit": "INACTIVE",
+    "system_max_bw": 100000000000000000,
+    "prioritize_inactive": true,
+    "sum_of_defaults_exceed_max": true,
+    "user_limit_lowered": "PRIORITY",
+    "limit_bw": true,
+    "guarantee_bw": true
+  },
+  "rule_management": {
+    "view_all_rules": true,
+    "view_group_rules": true,
+    "allow_hidden_rules": true,
+    "see_rule_creator": true,
+    "security_model": false
+  },
+  "account_management": {
+    "view_users": true,
+    "hide_some_info": true,
+    "privilege_control_level": "ADMIN",
+    "settings_control_level": "ADMIN",
+    "transfer_rule_ownership": "ADMIN"
+  }
+}
