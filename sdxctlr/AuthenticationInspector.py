@@ -4,6 +4,9 @@
 
 import logging
 from lib.Singleton import SingletonMixin
+from AuthorizationInspector import AuthorizationInspector
+
+from passlib.hash import pbkdf2_sha256
 
 class AuthenticationInspector(SingletonMixin):
     ''' The AuthenticationInspector is responsible for determining if someone or
@@ -39,7 +42,6 @@ class AuthenticationInspector(SingletonMixin):
         self.logger.addHandler(console)
         self.logger.addHandler(logfile) 
 
-
     def is_authenticated(self, username, credentials):
         ''' Returns true if user is authenticated, False otherwise. Credentials 
             may change over time, for instance, for the initial deployment, 
@@ -48,7 +50,8 @@ class AuthenticationInspector(SingletonMixin):
         if username not in self._credential_store.keys():
             self.logger.warning('User does not exist: %s', username)
             return False
-        if self._credential_store[username] != credentials:
+
+        if not pbkdf2_sha256.verify(credentials, self._credential_store[username]):
             self.logger.warning('User provided incorrect credentials: %s, %s',
                                 username, credentials)
             return False
@@ -66,7 +69,10 @@ class AuthenticationInspector(SingletonMixin):
         else:
             self.logger.info('New user being added to store: %s', username)
 
-        self._credential_store[username] = credentials
+        hash = pbkdf2_sha256.hash(credentials)
+        self._credential_store[username] = hash
+
+        AuthorizationInspector.instance().add_user(username)
 
         
     def add_users(self, list_of_authentications):
