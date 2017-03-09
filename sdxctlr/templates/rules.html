@@ -1,4 +1,6 @@
-{% include "head.html" %}
+{% extends "base.html" %}
+{% block title %}Rules{% endblock %}
+{% block content %}
     <section id="rules-table">
         <div class="container">
             <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
@@ -84,4 +86,4 @@
             </form>
         </div>
     </section>
-{% include "foot.html" %}
+{% endblock %}

@@ -1,89 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AtlanticWave SDX Web Application">
-    <meta name="author" content="Ankita Lamba and John Skandalakis">
-    <title>Atlantic Wave SDX</title>
-    <link href="static/css/bootstrap.min.css" rel="stylesheet">
-    <link href="static/css/font-awesome.min.css" rel="stylesheet">
-    <link href="static/css/prettyPhoto.css" rel="stylesheet">
-    <link href="static/css/main.css" rel="stylesheet">
-</head>
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
 
-<style>
-.tabcontent {display:none;}
-</style>
-
-<body data-spy="scroll" data-target="#navbar" data-offset="0">
-{% include "navbar.html" %}
-{% include "carousel.html" %}
-{% include "topology_panel.html" %}
-{% include "request_panel.html" %}
-<!-->
-{% include "about.html" %}
-<!-->
-{% include "login.html" %}
-
-        <footer id="footer">
-            <div class="container">
-                <div class="row">
-                    <div class="col-sm-6">
-                        &copy; 2016 <a target="_blank">AtlanticWave SDX</a>. All Rights Reserved.
-                    </div>
-                </div>
-            </div>
-        </footer>
-
-        <script src="static/js/jquery.js"></script>
-        <script src="static/js/bootstrap.min.js"></script>
-        <script src="static/js/jquery.isotope.min.js"></script>
-        <script src="static/js/jquery.prettyPhoto.js"></script>
-        <script src="static/js/main.js"></script>
-        <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-        <script> function role(evt, roleName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tablinks");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(roleName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-        </script>
-        <script type="text/javascript">
-        $(function () {
-            $("#startdate").datepicker({
-                numberOfMonths: 1,
-                changeMonth: true,
-                changeYear: true,
-                yearRange: 'dateToday:+5',
-                minDate: 0,
-                onSelect: function (selected) {
-                    var dt = new Date(selected);
-                    dt.setDate(dt.getDate() + 1);
-                    $("#enddate").datepicker("option", "minDate", dt);
-                }
-            });
-            $("#enddate").datepicker({
-                numberOfMonths: 1,
-                changeMonth: true,
-                changeYear: true,
-                yearRange: 'dateToday:+5',
-                onSelect: function (selected) {
-                    var dt = new Date(selected);
-                    dt.setDate(dt.getDate() - 1);
-                    $("#startdate").datepicker("option", "maxDate", dt);
-                }
-            });
-        });
-        </script>
-    </body>
-</html>
+{% block content %}
+    {% include "navbar.html" %}
+    {% include "carousel.html" %}
+    {% include "topology_panel.html" %}
+    {% include "request_panel.html" %}
+    {% include "about.html" %}
+    {% include "login.html" %}
+{% endblock %}

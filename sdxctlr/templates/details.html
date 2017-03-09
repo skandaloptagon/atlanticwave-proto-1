@@ -1,4 +1,6 @@
-{% include "head.html" %}
+{% extends "base.html" %}
+{% block title %}Rule {{ detail[0] }}{% endblock %}
+{% block content %}
     <section id="rules-table">
         <div class="container">
             <form action="/rule/all/">
@@ -46,7 +48,6 @@
                         <th>Bandwidth</th>
                         {% endif %}
                         {% if detail[1]['endpointconnection'] %}
-<!-- (u'2', {'endpointconnection': {'dstendpoint': u'miadtn', 'srcendpoint': u'grudtn', 'dataquantity': 2134, 'deadline': u'2018-11-11T11:11:00'}}, 'endpointconnection', 'ACTIVE RULE', u'sdonovan', ['gru:VlanTunnelLCRule: switch 3, 2:4:3:300:1:True:1', 'mia:VlanTunnelLCRule: switch 2, 2:5:4:200:1:True:1']) -->
                         <th>Deadline</th>
                         <th>Source Endpoint</th>
                         <th>Destination Endpoint</th>
@@ -94,4 +95,4 @@
         </div>
     </section>
 
-{% include "foot.html" %}
+{% endblock %}
