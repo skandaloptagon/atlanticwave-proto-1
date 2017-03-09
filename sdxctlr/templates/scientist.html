@@ -1,0 +1,33 @@
+                    <form action="rule" method="POST" id="Scientist" class="tabcontent">
+                      <div class="col-sm-4"></div>
+                      <div class="col-sm-4">
+                        <p>Source:  
+                            <select class="form-control" required="required" id="source" name="source">{% for item in dtns %}
+                                {{ item }}{% endfor %}
+                            </select>
+                        </p>
+                        <p>Destination:  
+                            <select class="form-control" required="required" id="dest" name="dest">{% for item in dtns %}
+                                {{ item }}{% endfor %}
+                            </select>
+                        </p>
+                        <p>Deadline:
+                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" required="required">
+                        </p>
+                        <p>Size:
+                            <input type="number" class="form-control" required="required" id="size" name="size" size=8>
+                            <select class="form-control" required="required" id="unit" name="unit">
+                                <option value="1">bytes</option> 
+                                <option value="1000">Kb</option>
+                                <option value="1000000">Mb</option>
+                                <option value="1000000000">Gb</option>
+                                <option value="1000000000000">Tb</option>
+                            </select>
+                        </p>
+                      </div>
+                      <div class="col-sm-4"><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br></div>
+                      <div class="row" align="center">
+                        <br><br><br><button type="test" class="btn btn-danger btn-lg" align="middle">Preview</button>
+                        <button type="submit" class="btn btn-danger btn-lg" align="middle">Submit</button>
+                      </div>
+                    </form>

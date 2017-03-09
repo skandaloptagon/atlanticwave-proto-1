@@ -182,7 +182,7 @@ class RestAPI(SingletonMixin):
                         switches.append(Markup('<option value="{}">{}</option>'.format(node_id,fname)))
                
             # Pass to flask to render a template
-            return flask.render_template('index.html',switches=switches, dtns=dtns, current_user=flask_login.current_user)
+            return flask.render_template('index.html', home=True, switches=switches, dtns=dtns, current_user=flask_login.current_user)
     
     # Preset the login form to the user and request to log user in
     @staticmethod
@@ -245,14 +245,32 @@ class RestAPI(SingletonMixin):
         if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
             G = TopologyManager.instance().get_topology()
 
+            height = 300
+            width = 960
+
             links = []
             for edge in G.edges(data=True):
                 links.append({"source":edge[0], "target":edge[1], "value":edge[2]["weight"]})
 
             nodes = []
             for node in G.nodes(data=True):
-                nodes.append({"id":node[0], "group":0})
-            
+                xy = node[1]['location'].split(',')
+                nodes.append({"id":node[0], "group":node[1]['type'],"friendlyname":node[1]["friendlyname"],
+                            "lx":str(height*(-1*(float(xy[0])-90)/180)),
+                            "ly":str(width*(float(xy[1])+180)/360)})
+                try:
+                    nodes[-1]["ip"]=node[1]["ip"]
+                except KeyError:
+                    pass 
+                try:
+                    nodes[-1]["lcip"]=node[1]["lcip"]
+                except KeyError:
+                    pass
+                try:
+                    nodes[-1]["vlan"]=node[1]["vlan"]
+                except KeyError:
+                    pass
+
             json_data = {"nodes":nodes, "links":links}
             
             return json.dumps(json_data)
