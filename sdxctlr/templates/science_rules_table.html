@@ -1,0 +1,34 @@
+            <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
+                <br>
+                <center><h1 style="color:white;">Scientist Rules</h1></center>
+                <!-- Table Header -->
+                <thead>
+                    <tr>
+                        <th>Rule#</th>
+                        <th>Deadline</th>
+                        <th>Source Endpoint</th>
+                        <th>Destination Endpoint</th>
+                        <th>Data Quantity</th>
+                        <th>Creator</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody>
+                    {% for rule in rules %}{% if rule[1]['endpointconnection'] %}
+                    <tr>
+                        <td><a href="/rule/{{ rule[0]}}">{{ rule[0]}}</a></td>
+                        <td>{{ rule[1]['endpointconnection']['deadline'] }}</td>
+                        <td>{{ rule[1]['endpointconnection']['srcendpoint'] }}</td>
+                        <td>{{ rule[1]['endpointconnection']['dstendpoint'] }}</td>
+                        <td>{{ rule[1]['endpointconnection']['dataquantity'] }}</td>
+                        <td>{{ rule[3] }}</td>
+                        <td><form action="/rule/{{ rule[0] }}" method="POST"><button type="submit" class="btn btn-danger btn-lg">[x]</button></form></td>
+                    </tr>
+                    {% endif %}{% endfor %}
+                </tbody>
+                <!-- Table Body -->
+
+            </table>
+

@@ -1,29 +1,22 @@
-    <section id="requests">
-        <div class="container">
-            <div class="box">
-                <div class="center gap">
-                    <h2>Request a Pipe</h2>
-                    <p class="lead">Users can request for a pipe based on their requirements and role</p>
-                </div>
-                
-                <div id="pricing-table" class="row">
-                    <div class="portfolio-filter">
-                        <li><a class="tablinks" href="#" onclick="role(event, 'NetworkEngr')">Network Engineers</a></li>
-                        <li><a class="tablinks" href="#" onclick="role(event, 'Scientist')">Scientists</a></li>
-                    </div>
-                    
-                    {% include "engineer.html" %}
-                    {% include "scientist.html" %}
+{% extends "request_panel_base.html" %}
+    {% block script %}
+    <style>
+    .tabcontent {display:none;}
+    </style>
 
-                </div> 
-
-                <div class="row" align="center">
-                    <form action="/rule/all/">
-                       <br><input type="submit" class="btn btn-danger btn-lg" value="View all rules"/>
-                    </form>
-                </div>
-           </div>
-       </div>
-   </section>
-
-
+        <script> 
+        function role(evt, roleName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(roleName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        </script>
+    {% endblock %}

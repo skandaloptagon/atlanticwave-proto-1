@@ -42,6 +42,7 @@ import sys, os, traceback
 
 #datetime
 from datetime import datetime
+import time
 from dateutil.parser import parse as pd
 
 #Constants
@@ -59,7 +60,7 @@ class RestAPI(SingletonMixin):
         specifically for the libraries that register with the RuleRegistry. 
         Singleton. '''
 
-    global User, app, login_manager, shibboleth
+    global User, app, login_manager, shibboleth, unauthorized_handler, page_not_found
 
     app = Flask(__name__, static_url_path='', static_folder='')
     #sso = SSO(app=app)
@@ -160,10 +161,13 @@ class RestAPI(SingletonMixin):
     @app.route('/', methods=['GET'])
     def home():
         if flask_login.current_user.get_id() == None:
+
+            return flask.render_template('index.html', current_user="Sign in", logged_out=True, home=True, shibboleth=shibboleth)
+            '''
             if shibboleth:
                 return app.send_static_file('static/index_shibboleth.html')
             return app.send_static_file('static/index.html')
- 
+            '''
         else: 
             # Get the Topo for dynamic list gen
             G = TopologyManager.instance().get_topology()            
@@ -182,7 +186,7 @@ class RestAPI(SingletonMixin):
                         switches.append(Markup('<option value="{}">{}</option>'.format(node_id,fname)))
                
             # Pass to flask to render a template
-            return flask.render_template('index.html', home=True, switches=switches, dtns=dtns, current_user=flask_login.current_user)
+            return flask.render_template('index.html', home=True, switches=switches, dtns=dtns)
     
     # Preset the login form to the user and request to log user in
     @staticmethod
@@ -197,6 +201,12 @@ class RestAPI(SingletonMixin):
             return flask.redirect(flask.url_for('home'))
 
         return 'Bad login'
+    # Present the admin console to authorized admins
+    @staticmethod
+    @app.route('/settings/authorization')
+    def admin_console():
+        users = AuthorizationInspector.instance().list_users()
+        return flask.render_template('admin_settings.html', home=False, shibboleth=shibboleth, user_list=users)
 
     # This is a worthless function. The redirect will eventually take you somewhere else.
     @staticmethod
@@ -212,13 +222,16 @@ class RestAPI(SingletonMixin):
     @app.route('/logout')
     def logout():
         flask_login.logout_user()
-        return flask.redirect(flask.url_for('home'))
+        return flask.redirect(flask.url_for('home')+'?n='+str(time.time()))
 
-    # Present the page which tells a user they are unauthorized
-    @staticmethod
     @login_manager.unauthorized_handler
-    def unauthorized_handler():
-        return 'Unauthorized'
+    def unauthorized():
+        # do stuff
+        return flask.render_template('404.html')
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template('404.html'), 404
 
     # Access information about a user
     @staticmethod
@@ -242,7 +255,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/topology_node.json')
     def show_network_topology_node_json():
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+        if True or AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
             G = TopologyManager.instance().get_topology()
 
             height = 300
@@ -280,48 +293,10 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/topology')
     def show_network_topology():
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+        if True or AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
             return flask.render_template('topology.html')
         return unauthorized_handler()
 
-
-    '''
-    This is for functionality to add multiple rules at once.
-
-    A typical set of rules should be a json object in following form:
-        {"rules":[
-          {"l2tunnel":{
-            "starttime":<START_TIME>,
-            "endtime":<END_TIME>,
-            "srcswitch":<SOURCE_SWITCH>,
-            "dstswitch":<DESTINATION_SWITCH>,
-            "srcport":<SOURCE_PORT>,
-            "dstport":<DESTINATION_PORT>,
-            "srcvlan":<SOURCE_VLAN>,
-            "dstvlan":<DESTINATION_VLAN>,
-            "bandwidth":<BANDWIDTH>}},
-          {"l2tunnel":{
-            "starttime":<START_TIME>,
-            "endtime":<END_TIME>,
-            "srcswitch":<SOURCE_SWITCH>,
-            "dstswitch":<DESTINATION_SWITCH>,
-            "srcport":<SOURCE_PORT>,
-            "dstport":<DESTINATION_PORT>,
-            "srcvlan":<SOURCE_VLAN>,
-            "dstvlan":<DESTINATION_VLAN>,
-            "bandwidth":<BANDWIDTH>}},
-          {"l2tunnel":{
-            "starttime":<START_TIME>,
-            "endtime":<END_TIME>,
-            "srcswitch":<SOURCE_SWITCH>,
-            "dstswitch":<DESTINATION_SWITCH>,
-            "srcport":<SOURCE_PORT>,
-            "dstport":<DESTINATION_PORT>,
-            "srcvlan":<SOURCE_VLAN>,
-            "dstvlan":<DESTINATION_VLAN>,
-            "bandwidth":<BANDWIDTH>}}]
-        }
-    '''
     @staticmethod
     @app.route('/batch_rule', methods=['POST'])
     def make_many_pipes():
@@ -403,19 +378,21 @@ class RestAPI(SingletonMixin):
             # Handles other HTTP request methods
             else:
                 return "Invalid HTTP request for rule manager"
-
-        return unauthorized_handler()
+        return page_not_found(e)
 
     # Get a list of rules that match certain filters or a query.
     @staticmethod
     @app.route('/rule/all/', methods=['GET','POST'])
+    #TODO: Make this decorator work
+    #@login_required
     def get_rules():
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'search_rules'):
+        print flask_login.current_user.is_authenticated
+        if flask_login.current_user.is_authenticated and AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'search_rules'):
             #TODO: Throws exception currently    
             if request.method == 'POST':
                 RuleManager.instance().remove_all_rules(flask_login.current_user.id)
             return flask.render_template('rules.html', rules=RuleManager.instance().get_rules())
-        return unauthorized_handler()
+        return ""
  
     # Get a list of rules that match certain filters or a query.
     @staticmethod
@@ -425,7 +402,7 @@ class RestAPI(SingletonMixin):
 
             # TODO: Parse query into filters and ordering
             return str(RuleManager.instance().get_rules(filter={query},ordering=query))
-        return unauthorized_handler()
+        return page_not_found()
 
 
 if __name__ == "__main__":

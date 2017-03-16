@@ -1,0 +1,30 @@
+     {% block script %}{% endblock %}
+     <section id="requests">
+        <div class="container">
+            <div class="box">
+                <div class="center gap">
+                    <h2>Request a Pipe</h2>
+                    <p class="lead">Users can request for a pipe based on their requirements and role</p>
+                </div>
+                {% block request %}
+                <div id="pricing-table" class="row">
+                    <div class="portfolio-filter">
+                        <li><a class="tablinks" href="#" onclick="role(event, 'NetworkEngr')">Network Engineers</a></li>
+                        <li><a class="tablinks" href="#" onclick="role(event, 'Scientist')">Scientists</a></li>
+                    </div>
+                    
+                    {% include "engineer.html" %}
+                    {% include "scientist.html" %}
+
+                </div> 
+                {% endblock %}
+                <div class="row" align="center">
+                    <form action="/rule/all/">
+                       <br><input type="submit" class="btn btn-danger btn-lg" value="View all rules"/>
+                    </form>
+                </div>
+           </div>
+       </div>
+   </section>
+
+

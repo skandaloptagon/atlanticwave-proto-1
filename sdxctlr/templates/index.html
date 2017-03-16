@@ -5,7 +5,14 @@
     {% include "navbar.html" %}
     {% include "carousel.html" %}
     {% include "topology_panel.html" %}
-    {% include "request_panel.html" %}
-    {% include "about.html" %}
-    {% include "login.html" %}
+    {% if logged_out and shibboleth %}
+        {% include "about.html" %}
+        {% include "login_shibboleth.html" %}
+    {% elif logged_out %}
+        {% include "about.html" %}
+        {% include "login.html" %}
+    {% elif current_user %} 
+        {% include "request_panel.html" %}
+        {% include "logout.html" %}
+    {% endif %}
 {% endblock %}

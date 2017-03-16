@@ -1,0 +1,21 @@
+            <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
+                <!-- Table Header -->
+                <br>
+                <center><h1 style="color:white;">User List</h1></center>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody>
+                    {% for user in user_list %}
+                    <tr>
+                        <td>{{ user }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <!-- Table Body -->
+            </table>
+

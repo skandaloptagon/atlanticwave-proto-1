@@ -14,11 +14,7 @@
     {% endblock %}
 </head>
 
-<style>
-.tabcontent {display:none;}
-</style>
-
-<body data-spy="scroll" data-target="#navbar" data-offset="0">
+<body{% if not current_user.id %}{% endif %} data-spy="scroll" data-target="#navbar" data-offset="0">
 {% include "navbar.html" %}
 
 {% block content %}{% endblock %}
@@ -45,20 +41,6 @@
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-        <script> function role(evt, roleName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tablinks");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(roleName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-        </script>
         <script type="text/javascript">
         $(function () {
             $("#startdate").datepicker({

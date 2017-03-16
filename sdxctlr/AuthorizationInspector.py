@@ -1,13 +1,15 @@
 # Copyright 2016 - Sean Donovan
 # AtlanticWave/SDX Project
+# Edited by John Skandalakis
 
 
 import logging
 from lib.Singleton import SingletonMixin
 
 from miracle import Acl
-import msgpack
-import umsgpack
+
+# normally I am opposed to pickle, but for this specific situation it is okay. 
+# Change to msgpack if transfering the acl across systems.
 import pickle
 
 class AuthorizationInspectorError(Exception):
@@ -56,7 +58,8 @@ class AuthorizationInspector(SingletonMixin):
     
     def add_user(self, username):
         ''' Adds a user to the ACL. This happens when a user logs into the 
-            system for the first time.'''
+            system for the first time on shibboleth systems. The admin needs to 
+            do this manually on non shibboleth systems'''
 
         # Right now we are treating every individual as a role.
         self.acl.add_role(username)
@@ -67,6 +70,9 @@ class AuthorizationInspector(SingletonMixin):
 
         self._save_acl()
         pass
+
+    def list_users(self):
+        return list(self.acl.get_roles())
 
     def _save_acl(self):
         ''' Save the ACL everytime you do anything to prevent losses. '''
@@ -84,15 +90,18 @@ class AuthorizationInspector(SingletonMixin):
                 save = pickle.load(f)
                 self.acl.__setstate__(save)
         except (IOError,EOFError) as e:
-            self.logger.warning("ACL File doesn not exist, continuing with empty ACL")
+            self.logger.warning("ACL File does not exist, continuing with empty ACL")
             self._setup_acl()
 
     def _setup_acl(self):
         self.logger.info('Adding resources to new ACL')
+        
+        #TODO: Add additional resources here
         self.acl.add_resource('login')
         self.acl.add_resource('admin_console')
         self.acl.add_resource('scientist')
         self.acl.add_resource('engineer')
+
         self._save_acl()
 
     def _setup_logger(self):

@@ -16,7 +16,7 @@
                         <li><a {% if not home %}onclick="location.href = '/#topology';"{% endif %} href="/#topology">Topology</a></li>
                         <li><a {% if not home %}onclick="location.href = '/#requests';"{% endif %} href="/#requests">Requests</a></li>
                         <li><a {% if not home %}onclick="location.href = '/#about-us';"{% endif %} href="/#about-us">About Us</a></li>
-                        <li><a {% if not home %}onclick="location.href = '/#login';"{% endif %} href="/#login">{{ current_user.id }}</a></li>
+                        <li><a {% if not home %}onclick="location.href = '/#login';"{% endif %} href="/#login">{% if logged_out %}Sign in{% elif current_user.id %}{{ current_user.id }}{% endif %}</a></li>
                     </ul>
                 </div>
             </div>
