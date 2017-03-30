@@ -78,10 +78,15 @@ class SDXController(SingletonMixin):
 
         # Initialize all the modules - Ordering is relatively important here
         self.aci = AuthenticationInspector.instance()
-        self.azi = AuthorizationInspector.instance()
+        self.azi = AuthorizationInspector.instance(self.db)
         self.be = BreakdownEngine.instance()
         self.rr = RuleRegistry.instance()
         self.vi = ValidityInspector.instance()
+
+
+        lc_permissions = ["access","edit","delete"]
+        for lc in self.tm.get_lcs():
+            self.azi.add_resource(str(lc),lc_permissions)
 
         if mani != None:
             self.pm = ParticipantManager.instance(mani)
@@ -108,6 +113,9 @@ class SDXController(SingletonMixin):
         self.rr.add_ruletype("l2tunnel", L2TunnelPolicy)
         self.rr.add_ruletype("endpointcxn", EndpointConnectionPolicy)
 
+
+        # User Manager
+        self.um = UserManager.instance(self.db,True)
 
         # Start these modules last!
         if self.run_topo:

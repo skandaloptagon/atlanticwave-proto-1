@@ -5,6 +5,8 @@
                 <thead>
                     <tr>
                         <th>User ID</th>
+                        <th>Roles</th>
+                        <th>Settings</th>
                     </tr>
                 </thead>
 
@@ -12,7 +14,9 @@
                 <tbody>
                     {% for user in user_list %}
                     <tr>
-                        <td>{{ user }}</td>
+                        <td>{{ user['email'] }}</td>
+                        <td>{% for item in privs[user['role']] %}{{ item }}{% endfor %}</td>
+                        <td>{{ user['settings'] }} </td>
                     </tr>
                     {% endfor %}
                 </tbody>

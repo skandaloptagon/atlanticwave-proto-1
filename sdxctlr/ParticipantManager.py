@@ -79,7 +79,7 @@ class ParticipantManager(SingletonMixin):
         self.participant_db[username] = participant
         
         # Push rules to A&A Inspectors
-        self._send_to_AA(participant)
+        # self._send_to_AA(participant)
 
     def _get_user(self, username):
         if username not in self.participant_db.keys():
@@ -102,8 +102,8 @@ class ParticipantManager(SingletonMixin):
         return participants_dict
 
     def _send_to_AA(self, participant):
-        AuthenticationInspector.instance().add_user(participant.username,
-                                                    participant.credentials)
-        AuthorizationInspector.instance().set_user_authorization(participant.username,
-                                                                 participant.authorizations)
-    
+        #AuthenticationInspector.instance().add_user(participant.username,
+        #                                            participant.credentials)
+        #AuthorizationInspector.instance().set_authorization(participant.username,
+        #                                                         participant.authorizations,'') 
+        pass

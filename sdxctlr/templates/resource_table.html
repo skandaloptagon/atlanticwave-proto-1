@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Resource Table{% endblock %}
+{% block content %}
+        <style>
+        .grant {
+            background-color: #00B6E3;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .revoke {
+            background-color: red;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        </style>
+        <section id="rules-table">
+            <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
+                <br>
+                <center><h1 style="color:white;">{{ role }}</h1></center>
+                <!-- Table Header -->
+                <thead>
+                    <tr>
+                        <th>Resource
+                        <th>Permission</th>
+                    </tr>
+                </thead>
+
+                <iframe name="hiddenFrame" class="hide"></iframe>
+                <!-- Table Body -->
+                <tbody>
+                {% for resource in resources %}
+                    <tr>
+                        <td>{{ resource }}</td>
+                        <td>
+                            {% for permission in resources[resource] %}
+                            <form style="display:inline;" target="hiddenFrame" action='/settings/authorization' method="post" onsubmit="setTimeout(function () { window.location.reload(); }, 10)">
+                                <input type="hidden" name="role" value="{{ role }}"/>
+                                <input type="hidden" name="resource" value="{{ resource }}"/>
+                                <input type="hidden" name="permission" value="{{ permission }}"/>
+                                <input type="hidden" name="action" value="{{ button[resource][permission] }}"/>
+                                <input type="submit" class="{{ button[resource][permission] }}" value={{ permission }} />
+                            </form>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                <!-- Table Body -->
+
+            </table>
+        </section>
+{% endblock %}

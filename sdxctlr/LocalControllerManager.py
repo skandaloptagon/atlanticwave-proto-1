@@ -136,5 +136,8 @@ class LocalControllerManager(SingletonMixin):
             self.localctlr_db[shortname] = rec
         
     def _send_to_AI(self, ctlr):
-        AuthenticationInspector.instance().add_user(ctlr.shortname,
-                                                    ctlr.credentials)
+        #TODO: I'm not sure if we want to treat controllers as users
+        #      Perhaps they should be treated as resources in the ACL
+        #AuthenticationInspector.instance().add_user(ctlr.shortname,
+        #                                            ctlr.credentials)
+        pass

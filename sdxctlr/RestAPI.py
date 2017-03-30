@@ -11,6 +11,7 @@ from AuthenticationInspector import AuthenticationInspector
 from AuthorizationInspector import AuthorizationInspector
 from RuleManager import RuleManager
 from TopologyManager import TopologyManager
+from UserManager import UserManager
 #from RuleRegistry import RuleRegistry
 
 #API Stuff
@@ -48,6 +49,23 @@ from dateutil.parser import parse as pd
 #Constants
 from shared.constants import *
 
+from flask import make_response
+from functools import wraps, update_wrapper
+from datetime import datetime
+
+
+#From: https://arusahni.net/blog/2014/03/flask-nocache.html
+def nocache(view):
+    @wraps(view)
+    def no_cache(*args, **kwargs):
+        response = make_response(view(*args, **kwargs))
+        response.headers['Last-Modified'] = datetime.now()
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
+        return response
+        
+    return update_wrapper(no_cache, view)
 
 class RestAPI(SingletonMixin):
     ''' The REST API will be the main interface for participants to use to push 
@@ -60,7 +78,7 @@ class RestAPI(SingletonMixin):
         specifically for the libraries that register with the RuleRegistry. 
         Singleton. '''
 
-    global User, app, login_manager, shibboleth, unauthorized_handler, page_not_found
+    global User, app, login_manager, shibboleth, unauthorized_handler, page_not_found, _authorize_user
 
     app = Flask(__name__, static_url_path='', static_folder='')
     #sso = SSO(app=app)
@@ -90,7 +108,14 @@ class RestAPI(SingletonMixin):
 
     def __init__(self,host='0.0.0.0',port=5000, shib=False):
         #FIXME: Creating user only for testing purposes
-        AuthenticationInspector.instance().add_user('sdonovan','1234')
+        self._setup_logger()
+
+        #TODO: Render stuff like this from manifest
+        UserManager.instance().add_user('sdonovan','1234')
+        AuthorizationInspector.instance().add_role('ADMIN')
+        AuthorizationInspector.instance().set_authorization('ADMIN','admin_console','permission 1')
+        UserManager.instance().assign_role('sdonovan','ADMIN') 
+
 
         global shibboleth
         shibboleth = shib
@@ -201,19 +226,166 @@ class RestAPI(SingletonMixin):
             return flask.redirect(flask.url_for('home'))
 
         return 'Bad login'
+
+    @staticmethod
+    @app.route("/new_user",methods=['POST','GET'])
+    def new_user():
+        if request.method == 'POST':
+            username = flask.request.form['username']
+            password = flask.request.form['password']
+            return username + password
+        else:
+            return flask.render_template('new_user.html', home=False )
+
+    @staticmethod
+    @app.route('/settings/authorization', methods=['POST'])
+    def grant_authorization():
+        #TODO: Build the endpoint for granting and revoking access
+        role = str(request.form["role"])
+        resource = str(request.form["resource"])
+        permission = str(request.form["permission"])
+        action = str(request.form["action"])
+        if action == 'grant':
+            AuthorizationInspector.instance().set_authorization(role, resource, permission)
+        elif action == 'revoke':
+            AuthorizationInspector.instance().revoke_authorization(role, resource,permission)
+        print action
+        return '{}'
+        return flask.redirect('/settings/resources?role='+role)
+
+    @staticmethod
+    @app.route('/settings/assign_role', methods=['POST'])
+    def assign_role():
+        user = None
+        role = None
+        if 'user' in request.form:
+            user = request.form["user"]
+        elif 'user' in request.args:
+            user = request.args["user"]
+        else:
+            return "bad request"
+
+        if 'role' in request.args:
+            role = request.args["role"]
+        elif 'role' in request.form:
+            role = request.form["role"]
+        else:
+            return "bad request"
+
+        print user,role
+
+        if 'assign' in request.args or 'assign' in request.form:
+            UserManager.instance().assign_role(user,role)
+        else:
+            UserManager.instance().unassign_role(user,role)
+
+        return "{}"
+
+    @staticmethod
+    @app.route('/settings/add_role', methods=['post'])
+    def add_role():
+        if 'role' in request.form:
+            role = request.form["role"]
+            AuthorizationInspector.instance().add_role(role)
+            return '{}'
+        return "bad request"
+
+    @staticmethod
+    @app.route('/settings')
+    @nocache
+    def settings():
+        roles = AuthorizationInspector.instance().get_roles()
+        users = UserManager.instance().get_users()
+        return flask.render_template('settings.html', home=False, roles=roles, users=users)
+
     # Present the admin console to authorized admins
     @staticmethod
-    @app.route('/settings/authorization')
+    @app.route('/settings/resources',methods=['POST','GET'])
+    @nocache
+    def admin_console_user_resources():
+        ''' Handles the resource page.  '''
+        if request.method == 'POST':
+            role = str(request.form["role"])
+            resource = str(request.form["resource"])
+            permission = str(request.form["permission"])
+            action = str(request.form["action"])
+            if action == 'grant':
+                AuthorizationInspector.instance().set_authorization(role, resource, permission)
+            elif action == 'revoke':
+                AuthorizationInspector.instance().revoke_authorization(role, resource,permission)
+            return '{}'
+        else:
+            role = None
+            if 'role' in request.args:
+                role = request.args['role']
+            elif 'role' in request.form:
+                role = request.form['role']
+            else:
+                #TODO: something else
+                return "bad request"
+
+            if not _authorize_user('setting','role'):
+                return "not authorized"
+
+            resource_table = AuthorizationInspector.instance().get_resource_table()
+            button = {}
+            for resource in resource_table:
+                button[resource] = {}
+                for perm in resource_table[resource]:
+                    #TODO: Make these strings into the tags for HTML Buttons.
+                    #      Will Need to make and endpoint for Grant and Revoke
+
+                    if AuthorizationInspector.instance().is_role_authorized(role, resource, perm):
+                        button[resource][perm] = "revoke"
+                    else:
+                        button[resource][perm] = "grant"
+
+            return flask.render_template('resource_table.html', home=False, role=role, button=button, resources=resource_table)
+
+    @staticmethod
+    @app.route('/settings/roles')
+    @nocache
+    def admin_console_user_roles():
+        if not _authorize_user('setting','role'):
+            return "not authorized"
+
+        users=UserManager.instance().get_users()
+        roles=AuthorizationInspector.instance().get_roles()
+
+        return flask.render_template('role_table.html', home=False, users=users,roles=roles)
+
+    # Present the admin console to authorized admins
+    @staticmethod
+    @app.route('/settings/users')
     def admin_console():
-        users = AuthorizationInspector.instance().list_users()
-        return flask.render_template('admin_settings.html', home=False, shibboleth=shibboleth, user_list=users)
+
+        if len(request.args) == 0 and len(request.form)==0:
+            if not _authorize_user('admin','users'):
+                return "not authorized"
+            show = AuthorizationInspector.instance().show()
+            users = UserManager.instance().get_users()
+            return flask.render_template('admin_settings.html', home=False, user_list=users, privs=show)
+
+        username=None
+        if len(request.args) == 1 and 'user' in request.args:
+            username = str(request.args['user'])
+        elif len(request.form) == 1 and 'user' in request.form:
+            username = request.form['user']
+        else:
+            return "bad request"
+
+        if not _authorize_user(username,'setting'):
+            return "not authorized"
+
+        user = UserManager.instance().get_user(username)
+        return flask.render_template('user_settings.html', home=False, user=username, settings=user['settings'])
 
     # This is a worthless function. The redirect will eventually take you somewhere else.
     @staticmethod
     @app.route('/protected')
     @flask_login.login_required
     def protected():
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'login'):
+        if _authorize_user('login','true'):
             return 'Logged in as: ' + flask_login.current_user.id
         return unauthorized_handler()
 
@@ -237,7 +409,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/user/<username>')
     def show_user_information(username):
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'get_user_info'):
+        if _authorize_user(username,'show'):
             return "Test: %s"%username
         return unauthorized_handler()
 
@@ -245,7 +417,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/topology.json')
     def show_network_topology_json():
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+        if _authorize_user('topo','show'):
             G = TopologyManager.instance().get_topology()
             data = json_graph.node_link_data(G)
             return json.dumps(data)
@@ -255,7 +427,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/topology_node.json')
     def show_network_topology_node_json():
-        if True or AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+        if True or _authorize_user('topo','show'):
             G = TopologyManager.instance().get_topology()
 
             height = 300
@@ -293,7 +465,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/topology')
     def show_network_topology():
-        if True or AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+        if True or _authorize_user('topo','show'):
             return flask.render_template('topology.html')
         return unauthorized_handler()
 
@@ -313,7 +485,7 @@ class RestAPI(SingletonMixin):
     def make_new_pipe():
         theID = "curlUser"
         try:
-            if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'show_topology'):
+            if _authorize_user('rule', 'add'):
                 theID = flask_login.current_user.id
             else:
                 theID = "curlUser"
@@ -358,7 +530,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/rule/<rule_hash>',methods=['GET','POST'])
     def get_rule_details_by_hash(rule_hash):
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'access_rule_by_hash'):
+        if _authorize_user('rule', 'hash'):
 
             # Shows info for rule
             if request.method == 'GET':
@@ -386,8 +558,7 @@ class RestAPI(SingletonMixin):
     #TODO: Make this decorator work
     #@login_required
     def get_rules():
-        print flask_login.current_user.is_authenticated
-        if flask_login.current_user.is_authenticated and AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'search_rules'):
+        if _authorize_user('rules','search'):
             #TODO: Throws exception currently    
             if request.method == 'POST':
                 RuleManager.instance().remove_all_rules(flask_login.current_user.id)
@@ -398,12 +569,33 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/rule/search/<query>')
     def get_rule_search_by_query(query):
-        if AuthorizationInspector.instance().is_authorized(flask_login.current_user.id,'search_rules'):
+        if _authorize_user('rules','search'):
 
             # TODO: Parse query into filters and ordering
             return str(RuleManager.instance().get_rules(filter={query},ordering=query))
         return page_not_found()
 
+    def _authorize_user(resource, permission): 
+        roles = UserManager.instance().get_user(flask_login.current_user.id)['role']
+        print roles
+        return AuthorizationInspector.instance().is_user_authorized(roles,resource,permission)
+
+    def _setup_logger(self):
+        ''' Internal function for setting up the logger formats. '''
+        # reused from https://github.com/sdonovan1985/netassay-ryu/blob/master/base/mcm.py
+        formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
+        console = logging.StreamHandler()
+        console.setLevel(logging.WARNING)
+        console.setFormatter(formatter)
+        logfile = logging.FileHandler('sdxcontroller.log')
+        logfile.setLevel(logging.DEBUG)
+        logfile.setFormatter(formatter)
+        self.logger = logging.getLogger('sdxcontroller.localctlrmgr')
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(console)
+        self.logger.addHandler(logfile)
+        app.logger.addHandler(console)
+        app.logger.addHandler(logfile)
 
 if __name__ == "__main__":
     def blah(param):

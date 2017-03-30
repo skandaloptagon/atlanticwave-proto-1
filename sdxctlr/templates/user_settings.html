@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin Console{% endblock %}
+{% block content %}
+        <section id="rules-table">
+            {% for category in settings %}
+            <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
+                <br>
+                <center><h1 style="color:white;">{{ category }}</h1></center>
+                <!-- Table Header -->
+                <thead>
+                    <tr>
+                        <th>Setting</th>
+                        <th>Option</th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody>
+                    {% for setting in settings[category] %}
+                    <tr>
+                        <td>{{ setting }}</td>
+                        <td>{{ settings[category][setting] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <!-- Table Body -->
+
+            </table>
+            {% endfor %}
+        </section>
+{% endblock %}

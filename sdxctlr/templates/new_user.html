@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Resource Table{% endblock %}
+{% block content %}
+        <script language='javascript' type='text/javascript'>
+            function check(input) {
+                if (input.value != document.getElementById('password').value) {
+                    input.setCustomValidity('Password Must be Matching.');
+                } else {
+                    // input is valid -- reset the error message
+                    input.setCustomValidity('');
+                }
+            }
+        </script>
+
+        <section id="rules-table">
+            <center>
+                <form action="/new_user" method="post">
+                    <p>Username:</p>
+                    <input name="username" required="required" type="text" id="password" />
+                    <p>Password:</p>
+                    <input name="password" required="required" type="password" id="password" />
+                    <p>Confirm Password:</p>
+                    <input name="password_confirm" required="required" type="password" id="password_confirm" on_input="check(this)" />
+                 </form>
+            </center>
+        </section>
+{% endblock %}
