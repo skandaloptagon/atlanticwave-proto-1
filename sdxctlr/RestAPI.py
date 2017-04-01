@@ -143,7 +143,7 @@ class RestAPI(SingletonMixin):
         print int(login_session.split('.')[0]),timestamp
         '''
 
-        AuthorizationInspector.instance().add_user(user)
+        UserManager.instance().add_user(user)
 
         flask_login.login_user(user)
         return flask.redirect(flask.url_for('home'))
@@ -181,9 +181,10 @@ class RestAPI(SingletonMixin):
                 if "friendlyname" in node and "type" in node:
                     fname = node["friendlyname"]
                     if node["type"]=="dtn":
+                        dtns.append((node_id,fname))
                         dtns.append(Markup('<option value="{}">{}</option>'.format(node_id,fname)))
                     if node["type"]=="switch":
-                        switches.append(Markup('<option value="{}">{}</option>'.format(node_id,fname)))
+                        switches.append((node_id,fname))
                
             # Pass to flask to render a template
             return flask.render_template('index.html', home=True, switches=switches, dtns=dtns)
