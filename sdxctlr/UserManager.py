@@ -101,6 +101,13 @@ class UserManager(SingletonMixin):
         self.logger.info("Unassigning {} to {}".format(username,role))
         self.user_table.update(user, ['email'])
 
+    def user_view(username):
+        view = {}
+
+        settings = self.get_user(username)['settings']
+        privileges = AuthorizationInspector.instance()
+
+        return view
 
     def _build_default_settings(self):
         return {"Home Screen":
