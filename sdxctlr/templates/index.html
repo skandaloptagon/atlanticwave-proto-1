@@ -2,10 +2,12 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+    {% with view=view %}
     {% include "navbar.html" %}
+    {% endwith %}
     {% include "carousel.html" %}
 
-    {% if view['topo']
+    {% if view['topo'] %}
         {% include "topology_panel.html" %}
     {% endif %}
     {% if view['about'] %}
