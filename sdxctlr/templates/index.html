@@ -4,7 +4,14 @@
 {% block content %}
     {% include "navbar.html" %}
     {% include "carousel.html" %}
-    {% include "topology_panel.html" %}
+
+    {% if view['topo']
+        {% include "topology_panel.html" %}
+    {% endif %}
+    {% if view['about'] %}
+        {% include "about.html" %}
+    {% endif %}
+
     {% if logged_out and shibboleth %}
         {% include "about.html" %}
         {% include "login_shibboleth.html" %}

@@ -63,25 +63,10 @@ class RestAPI(SingletonMixin):
     global User, app, login_manager, shibboleth, unauthorized_handler, page_not_found
 
     app = Flask(__name__, static_url_path='', static_folder='')
-    #sso = SSO(app=app)
 
     #FIXME: This should be more secure.
     app.secret_key = 'ChkaChka.....Boo, Ohhh Yeahh!'
 
-    #: Default attribute map
-    '''
-    SSO_ATTRIBUTE_MAP = {
-        'ADFS_AUTHLEVEL': (False, 'authlevel'),
-        'ADFS_GROUP': (True, 'group'),
-        'ADFS_LOGIN': (True, 'nickname'),
-        'ADFS_ROLE': (False, 'role'),
-        'ADFS_EMAIL': (True, 'email'),
-        'ADFS_IDENTITYCLASS': (False, 'external'),
-        'HTTP_SHIB_AUTHENTICATION_METHOD': (False, 'authmethod'),
-    }
-
-    app.config['SSO_ATTRIBUTE_MAP'] = SSO_ATTRIBUTE_MAP
-    '''
     login_manager = LoginManager()
 
     def api_process(self):
@@ -101,8 +86,7 @@ class RestAPI(SingletonMixin):
         p = Thread(target=self.api_process)
         p.daemon = True
         p.start()
-        #app.config['SSO_LOGIN_URL'] = 'http://aw.cloud.rnoc.gatech.edu/secure/login2.cgi'
-        pass
+
 
     def _setup_logger(self):
         ''' Internal fucntion for setting up the logger formats. '''
@@ -119,8 +103,10 @@ class RestAPI(SingletonMixin):
         self.logger.addHandler(console)
         self.logger.addHandler(logfile) 
 
+
     class User(flask_login.UserMixin):
         pass
+
 
     # This builds a shibboleth session
     @staticmethod
@@ -148,6 +134,7 @@ class RestAPI(SingletonMixin):
         flask_login.login_user(user)
         return flask.redirect(flask.url_for('home'))
 
+
     # This maintains the state of a logged in user.
     @staticmethod
     @login_manager.user_loader
@@ -156,6 +143,7 @@ class RestAPI(SingletonMixin):
         user.id = email
         return user
 
+
     # Preset the login form to the user and request to log user in
     #@staticmethod
     @app.route('/', methods=['GET'])
@@ -163,11 +151,6 @@ class RestAPI(SingletonMixin):
         if flask_login.current_user.get_id() == None:
 
             return flask.render_template('index.html', current_user="Sign in", logged_out=True, home=True, shibboleth=shibboleth)
-            '''
-            if shibboleth:
-                return app.send_static_file('static/index_shibboleth.html')
-            return app.send_static_file('static/index.html')
-            '''
         else: 
             # Get the Topo for dynamic list gen
             G = TopologyManager.instance().get_topology()            
@@ -328,7 +311,6 @@ class RestAPI(SingletonMixin):
             # Just making sure the datetimes are okay
             starttime = datetime.strptime(str(pd(request.form['startdate'] + ' ' + request.form['starttime'])), '%Y-%m-%d %H:%M:%S')
             endtime = datetime.strptime(str(pd(request.form['enddate'] + ' ' + request.form['endtime'])), '%Y-%m-%d %H:%M:%S')
-
     
             # The Object to pass into L2TunnelPolicy
             data = {"l2tunnel":{"starttime":str(starttime.strftime(rfc3339format)),
@@ -354,6 +336,7 @@ class RestAPI(SingletonMixin):
 
         print rule_hash
         return flask.redirect('/rule/' + str(rule_hash))
+
 
     # Get information about a specific rule IDed by hash.
     @staticmethod
@@ -381,6 +364,7 @@ class RestAPI(SingletonMixin):
                 return "Invalid HTTP request for rule manager"
         return page_not_found(e)
 
+
     # Get a list of rules that match certain filters or a query.
     @staticmethod
     @app.route('/rule/all/', methods=['GET','POST'])
@@ -394,6 +378,7 @@ class RestAPI(SingletonMixin):
                 RuleManager.instance().remove_all_rules(flask_login.current_user.id)
             return flask.render_template('rules.html', rules=RuleManager.instance().get_rules())
         return ""
+
  
     # Get a list of rules that match certain filters or a query.
     @staticmethod
