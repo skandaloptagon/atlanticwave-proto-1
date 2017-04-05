@@ -2,18 +2,9 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-    {% with view=view %}
     {% include "navbar.html" %}
-    {% endwith %}
     {% include "carousel.html" %}
-
-    {% if view['topo'] %}
-        {% include "topology_panel.html" %}
-    {% endif %}
-    {% if view['about'] %}
-        {% include "about.html" %}
-    {% endif %}
-
+    {% include "topology_panel.html" %}
     {% if logged_out and shibboleth %}
         {% include "about.html" %}
         {% include "login_shibboleth.html" %}

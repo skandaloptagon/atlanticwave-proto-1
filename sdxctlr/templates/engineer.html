@@ -23,11 +23,11 @@
                       <div class="col-sm-4">
                         <p>Select source: 
                         <select class="form-control" required="required" id="source" name="source">{% for item in switches %}
-                            <option value="{{ item[0] }}">{{ item[1]}}</option>{% endfor %}
+                            <option value="{{ item }}">{{ switches[item] }}</option>{% endfor %}
                         </select> </p>
                         <p>Select destination: 
                             <select class="form-control" id="dest" name="dest" required="required">{% for item in switches %}
-                                <option value="{{ item[0] }}">{{ item[1]}}</option>{% endfor %}
+                                <option value="{{ item }}">{{ switches[item] }}</option>{% endfor %}
                             </select> </p>
                       </div>
                       

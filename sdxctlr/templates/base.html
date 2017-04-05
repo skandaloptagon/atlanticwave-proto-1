@@ -15,6 +15,7 @@
 </head>
 
 <body{% if not current_user.id %}{% endif %} data-spy="scroll" data-target="#navbar" data-offset="0">
+{% include "navbar.html" %}
 
 {% block content %}{% endblock %}
 

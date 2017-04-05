@@ -3,12 +3,13 @@
                       <div class="col-sm-4">
                         <p>Source:  
                             <select class="form-control" required="required" id="source" name="source">{% for item in dtns %}
-                                <option value="{{ item[0] }}">{{ item[1]}}</option>{% endfor %}
+                                <option value="{{ item }}">{{ dtns[item] }}</option>
+                                {% endfor %}
                             </select>
                         </p>
                         <p>Destination:  
                             <select class="form-control" required="required" id="dest" name="dest">{% for item in dtns %}
-                                <option value="{{ item[0] }}">{{ item[1]}}</option>{% endfor %}
+                                <option value="{{ item }}">{{ dtns[item] }}</option>{% endfor %}
                             </select>
                         </p>
                         <p>Deadline:

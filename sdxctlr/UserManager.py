@@ -20,10 +20,9 @@ class UserManager(SingletonMixin):
         self.ungrouped = ungrouped
         self.user_table = self.db['users']        # All the find live here.
 
+
         # Used for filtering.
         self._valid_table_columns = ['email', 'password', 'role', 'settings']
-
-        self.add_user('sdonovan','1234')
         
     def add_user(self, user, credentials):
         ''' Adds a user to the system with default rules. If the group policy is 
@@ -102,13 +101,6 @@ class UserManager(SingletonMixin):
         self.logger.info("Unassigning {} to {}".format(username,role))
         self.user_table.update(user, ['email'])
 
-    def user_view(username):
-        view = {}
-
-        settings = self.get_user(username)['settings']
-        privileges = AuthorizationInspector.instance()
-
-        return view
 
     def _build_default_settings(self):
         return {"Home Screen":
