@@ -36,8 +36,9 @@ class UserManager(SingletonMixin):
         role=set(["DEFAULT_USER"])
         role.add(user)
 
-        AuthorizationInspector.instance().add_role(user)
-        AuthorizationInspector.instance().add_resource(user,['setting','show'])
+        if True: #TODO: security policy
+            AuthorizationInspector.instance().add_role(user)
+            AuthorizationInspector.instance().add_resource(user,['setting','show'])
 
         settings = self._build_default_settings()
 

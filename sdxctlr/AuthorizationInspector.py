@@ -39,16 +39,63 @@ class AuthorizationInspector(SingletonMixin):
         self._setup_logger()
 
         self.acl_store = db['acl']
+        self.rule_boundaries = db['rb']
+
+        #Bandwidth limit and html5 form type
+        self.valid_btypes = {"BW Limit":"number", "BW Guarantee":"number", "Number of Rules":"number"}
 
         self.acl = Acl()
         self._load_acl()
-        pass
+
+        for role in self.get_roles():
+            self.touch_boundary(role)
+
+    def get_all_boundaries(self):
+        bounds = []
+        for bound in self.rule_boundaries.all():
+            bounds.append(bound)
+        return bounds
+
+    def touch_boundary(self, role):
+        ''' this adds a row in the DB for a role. call this whenever a new role is added. '''
+        self.logger.info("touch role, {}, for rule boundary".format(role))
+        data = dict(role=role)
+        self.rule_boundaries.upsert(data,[role])
+
+
+    def set_rule_boundary(self, role, btype, value):
+        self.logger.info("set:{};{};{}".format(role, btype, value))
+        if not btype in self.valid_btypes:
+            raise AuthorizationInspectorError()
+
+        value = self._check_btype(btype,value)
+
+        data = self.rule_boundaries.find_one(role=role)
+        data[btype] = value
+        self.rule_boundaries.update(data,['role'])
+
+    def _check_btype(self, btype, value):
+        if not btype in self.valid_btypes:
+            raise AuthorizationInspectorError()
+
+        if self.valid_btypes[btype] == "number":
+            return int(value)
+        elif self.valid_btypes[btype] == "text":
+            return value
+
+    def get_rule_boundary(self, role, btype):
+        self.logger.info("get:{};{}".format(role, btype))
+        if not btype in self.valid_btypes:
+            raise AuthorizationInspectorError() 
+        return self.rule_boundaries.find_one(role=role)[btype]
+
 
     def is_role_authorized(self, role, resource, permission):
         ''' Returns true if a role is allowed to take a particular action, false 
             otherwise. If a role is not in the database, raise an error. '''
         self.logger.info("check:{};{};{}".format(role, resource, resource))
         return self.acl.check(role, resource, permission)
+
 
     def is_user_authorized(self, roles, resource, permission):
         ''' Returns true if user is allowed to take a particular action, false 
@@ -60,6 +107,7 @@ class AuthorizationInspector(SingletonMixin):
 
         return False
 
+
     def set_authorization(self, role, resource, permission):
         ''' Adds authorization information for a particular user or role. Replaces 
             previous authorization record for that particular user. '''
@@ -67,23 +115,33 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.grant(role,resource,permission)
         self._save_acl()
 
+
     def revoke_authorization(self, role, resource, permission):
         ''' Revokes authorization information for a particular user or role. '''
         self.logger.info("revoke:{};{};{}".format(role, resource, resource))
         self.acl.revoke(role,resource,permission)
         self._save_acl()
 
+
     def get_roles(self):
         return self.acl.get_roles()
+
 
     def add_role(self, role):
         ''' Adds a role to miracle ACL. This will be called when ungrouped users
             are added to the system and when the admin decided to create group '''
-
         self.logger.info("Adding Role " + role)
-        self.acl.add_role(role)
-        self._save_acl()
+
+        if role in self.acl.get_roles():
+            self.acl.add_role(role)
+            self.touch_boundary(role)
+
+            self._save_acl()
+        else:
+            self.logger.warn("role already exists")
+        
         pass
+
 
     def add_resource(self, resource, list_of_permissions):
         self.logger.info("Add Resource:{};{}".format(resource, ','.join(list_of_permissions)))
@@ -93,6 +151,7 @@ class AuthorizationInspector(SingletonMixin):
             self.acl.add_permission(resource,permission)
 
         pass
+
 
     def get_resource_table(self):
         ''' gets a dictionary of the resources with permissions inside '''
@@ -105,9 +164,11 @@ class AuthorizationInspector(SingletonMixin):
 
         return resources
 
+
     def show(self):
         self.logger.info("Show")
         return self.acl.show()
+
 
     def _save_acl(self):
         ''' Save the ACL everytime you do anything to prevent losses. '''
@@ -155,12 +216,15 @@ class AuthorizationInspector(SingletonMixin):
             self.logger.warning("ACL File does not exist, continuing with empty ACL")
         '''
 
+
     def _setup_acl(self):
         self.logger.info('Adding resources to new ACL')
 
         #TODO: Add additional resources here
 
-        
+
+        self.acl.add_permission('admin','rules')
+
         self.acl.add_resource('rules')
         self.acl.add_permission('rules','search')
         self.acl.add_permission('rules','hash')
@@ -170,12 +234,12 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.add_resource('topo')
         self.acl.add_permission('topo','show')
 
-        self.acl.add_resource('setting')
-        self.acl.add_permission('setting','role')
+        self.acl.add_resource('settings')
+        self.acl.add_permission('settings','admin')
 
-        self.acl.grant('ADMIN','setting', 'role')
-        self.acl.grant('DEFAULT','setting', 'role')
+        self.acl.grant('ADMIN','settings', 'admin')
         #TODO:SAVE and LOAD from DB
+
         self._save_acl()
 
     def _setup_logger(self):

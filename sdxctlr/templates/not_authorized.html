@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Resource Table{% endblock %}
+{% block content %}
+        <section id="rules-table">
+            <center>
+                <h1 style="color:white;">You are not authorized to view this page</h1>
+                <p>If you believe you have reached this page in error, please contact your administrator.</p>
+                <p>Resource: {{ resource }}</p>
+                <p>Permission: {{ permission }}</p>
+            </center>
+        </section>
+{% endblock %}

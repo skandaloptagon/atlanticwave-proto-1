@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Resource Table{% endblock %}
+{% block content %}
+        <style>
+        .grant {
+            background-color: #00B6E3;
+            border: none;
+            color: white;
+            padding: 7px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .revoke {
+            background-color: red;
+            border: none;
+            color: white;
+            padding: 3px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        </style>
+        <section id="rules-table">
+            <table cellspacing='0'> <!-- cellspacing='0' is important, must stay -->
+                <br>
+                <center><h1 style="color:white;">{{ role }}</h1></center>
+                <!-- Table Header -->
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Bounds</th>
+                    </tr>
+                </thead>
+
+                <iframe name="hiddenFrame" class="hide"></iframe>
+                <!-- Table Body -->
+                <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>{{ row['role'] }}</td>
+                        <td>
+                            <form target="hiddenFrame" action='/settings/rules' method="post" onsubmit="setTimeout(function () { window.location.reload(); }, 10)">
+                                <input type="hidden" name="role" value="{{ row['role'] }}"/>
+                                {% for vtype in vtypes %}
+                                <p align="right">
+                                {{ vtype }}:
+                                <input type="{{ vtypes[vtype] }}" name="{{ vtype }}" value="{{ row[vtype] }}"/>
+                                </p>
+                                {% endfor %}
+                                <input type="submit" class="revoke" value="update" />
+
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                <!-- Table Body -->
+
+            </table>
+        </section>
+{% endblock %}
