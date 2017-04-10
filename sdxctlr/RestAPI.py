@@ -524,7 +524,7 @@ class RestAPI(SingletonMixin):
     @staticmethod
     @app.route('/batch_rule', methods=['POST'])
     # TODO: Write a decorator which checks command line users
-    @authorize('rule', 'batch')
+    @authorize('rules', 'batch')
     def make_many_pipes():
         data = request.json
         hashes = []
@@ -536,7 +536,7 @@ class RestAPI(SingletonMixin):
 
     @staticmethod
     @app.route('/rule', methods=['POST'])
-    @authorize('rule', 'add')
+    @authorize('rules', 'add')
     def make_new_pipe():
         theID = "curlUser"
 
@@ -587,7 +587,7 @@ class RestAPI(SingletonMixin):
     # Get information about a specific rule IDed by hash.
     @staticmethod
     @app.route('/rule/<rule_hash>', methods=['GET', 'POST'])
-    @authorize('rule', 'hash')
+    @authorize('rules', 'hash')
     def get_rule_details_by_hash(rule_hash):
 
         # Shows info for rule
@@ -610,7 +610,7 @@ class RestAPI(SingletonMixin):
     # Get a list of rules that match certain filters or a query.
     @staticmethod
     @app.route('/rule/all/', methods=['GET', 'POST'])
-    @authorize('rule', 'search')
+    @authorize('rules', 'search')
     def get_rules():
         # TODO: Throws exception currently
         if request.method == 'POST':
@@ -621,7 +621,7 @@ class RestAPI(SingletonMixin):
     # Get a list of rules that match certain filters or a query.
     @staticmethod
     @app.route('/rule/search/<query>')
-    @authorize('rule', 'search')
+    @authorize('rules', 'search')
     def get_rule_search_by_query(query):
         # TODO: Parse query into filters and ordering
         return str(RuleManager.instance().get_rules(filter={query}, ordering=query))

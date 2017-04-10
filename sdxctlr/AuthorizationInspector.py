@@ -108,6 +108,11 @@ class AuthorizationInspector(SingletonMixin):
         self.logger.info("check:{};{};{}".format(role, resource, resource))
         return self.acl.check(role, resource, permission)
 
+    def is_rule_authorized(self, user, rule):
+        print user
+        print rule
+        return False
+
 
     def is_user_authorized(self, roles, resource, permission):
         ''' Returns true if user is allowed to take a particular action, false 

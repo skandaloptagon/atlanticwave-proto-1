@@ -166,7 +166,7 @@ class RuleManager(SingletonMixin):
         rule = pickle.loads(str(self.rule_table.find_one(hash=rule_hash)['rule']))
         authorized = None
         try:
-            authorized = AuthorizationInspector.instance().is_authorized(user, rule) #FIXME
+            authorized = AuthorizationInspector.instance().is_rule_authorized(user, rule) #FIXME
         except Exception as e:
             raise RuleManagerAuthorizationError("User %s is not authorized to remove rule %s with exception %s" % (user, rule_hash, str(e)))
         if authorized != True:
@@ -279,6 +279,7 @@ class RuleManager(SingletonMixin):
             processing, including all the authorization checking. 
             Raises error if there are any problems.
             Returns breakdown of the rule if successful. '''
+        print "this"
 
         valid = None
         breakdown = None
@@ -303,7 +304,7 @@ class RuleManager(SingletonMixin):
 
         # Check if the user is authorized to perform those actions.
         try:
-            authorized = AuthorizationInspector.instance().is_authorized(rule.username, rule)
+            authorized = AuthorizationInspector.instance().is_rule_authorized(rule.username, rule)
         except Exception as e: raise
             
         if authorized != True:
