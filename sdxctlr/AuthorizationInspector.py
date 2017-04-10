@@ -59,7 +59,14 @@ class AuthorizationInspector(SingletonMixin):
     def touch_boundary(self, role):
         ''' this adds a row in the DB for a role. call this whenever a new role is added. '''
         self.logger.info("touch role, {}, for rule boundary".format(role))
+
+        if self.rule_boundaries.find_one(role=role) != None:
+            return
+
         data = dict(role=role)
+        for btype in self.valid_btypes:
+            data[btype] = 0
+
         self.rule_boundaries.upsert(data,[role])
 
 
@@ -78,8 +85,13 @@ class AuthorizationInspector(SingletonMixin):
         if not btype in self.valid_btypes:
             raise AuthorizationInspectorError()
 
+        #return value
+
         if self.valid_btypes[btype] == "number":
-            return int(value)
+            try:
+                return int(value)
+            except ValueError:
+                return 0
         elif self.valid_btypes[btype] == "text":
             return value
 
@@ -132,7 +144,7 @@ class AuthorizationInspector(SingletonMixin):
             are added to the system and when the admin decided to create group '''
         self.logger.info("Adding Role " + role)
 
-        if role in self.acl.get_roles():
+        if not role in self.acl.get_roles():
             self.acl.add_role(role)
             self.touch_boundary(role)
 
@@ -182,13 +194,6 @@ class AuthorizationInspector(SingletonMixin):
         else:
             self.acl_store.update(dict(name="ACL",acl=save),['name'])
 
-        # This is code for saving the ACL to a file
-        '''
-        with open("security/acl.pkl","wb") as f:
-            save = self.acl.__getstate__()
-            pickle.dump(save,f)
-        '''
-
 
     def _load_acl(self):
         ''' Load the ACL in the initialization if the ACL exists, otherwise 
@@ -206,24 +211,11 @@ class AuthorizationInspector(SingletonMixin):
             self.acl.__setstate__(save)
 
 
-        # This is code for loading the ACL from a file
-        '''
-        try:
-            with open("security/acl.pkl","rb") as f:
-                save = pickle.load(f)
-                self.acl.__setstate__(save)
-        except (IOError,EOFError) as e:
-            self.logger.warning("ACL File does not exist, continuing with empty ACL")
-        '''
-
-
     def _setup_acl(self):
         self.logger.info('Adding resources to new ACL')
 
-        #TODO: Add additional resources here
-
-
-        self.acl.add_permission('admin','rules')
+        self.add_role('ADMIN')
+        self.add_role('DEFAULT')
 
         self.acl.add_resource('rules')
         self.acl.add_permission('rules','search')
@@ -238,9 +230,14 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.add_permission('settings','admin')
 
         self.acl.grant('ADMIN','settings', 'admin')
-        #TODO:SAVE and LOAD from DB
+        self.acl.grant('ADMIN','rules', 'search')
+        self.acl.grant('ADMIN','rules', 'hash')
+        self.acl.grant('ADMIN','rules', 'add')
+        self.acl.grant('ADMIN','rules', 'delete')
+        self.acl.grant('ADMIN','topo', 'show')
 
         self._save_acl()
+
 
     def _setup_logger(self):
         ''' Internal function for setting up the logger formats. '''

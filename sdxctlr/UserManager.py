@@ -33,12 +33,16 @@ class UserManager(SingletonMixin):
 
         hash = pbkdf2_sha256.hash(credentials)
 
-        role=set(["DEFAULT_USER"])
+        role=set(["DEFAULT"])
         role.add(user)
 
         if True: #TODO: security policy
             AuthorizationInspector.instance().add_role(user)
             AuthorizationInspector.instance().add_resource(user,['setting','show'])
+            AuthorizationInspector.instance().set_authorization(user, user, 'setting')
+            AuthorizationInspector.instance().set_authorization('ADMIN', user, 'setting')
+            AuthorizationInspector.instance().set_authorization(user, user, 'show')
+            AuthorizationInspector.instance().set_authorization('DEFAULT', user, 'show')
 
         settings = self._build_default_settings()
 
