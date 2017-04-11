@@ -98,7 +98,7 @@ class EndpointConnectionPolicy(UserPolicy):
         # breakdown_rule, but there are some significant differences.
         self.breakdown = []
         topology = tm.get_topology()
-        authorization_func = ai.is_authorized
+        authorization_func = ai.is_rule_authorized
         
         # First, find out the bandwidth requirements
         total_time = (datetime.strptime(self.deadline, rfc3339format) - 
@@ -106,9 +106,17 @@ class EndpointConnectionPolicy(UserPolicy):
         if total_time == EndpointConnectionPolicy.buffer_time_sec or total_time == 0:
             # This adjustment is to prevent 0 denominators in the next formulas
             total_time += 1
-            
+        '''
+        print self.data, total_time, EndpointConnectionPolicy.buffer_time_sec, EndpointConnectionPolicy.buffer_bw_percent
+        print self.data/(total_time - EndpointConnectionPolicy.buffer_time_sec)
+        print (self.data/total_time)*EndpointConnectionPolicy.buffer_bw_percent
+        '''
+        
+        #TODO: Consult sean on this. Not working as intended.
+        ''' 
         self.bandwidth = int(ceil(max(self.data/(total_time - EndpointConnectionPolicy.buffer_time_sec),
                                       (self.data/total_time)*EndpointConnectionPolicy.buffer_bw_percent)))
+        '''
 
         # Second, get the path, and reserve bw and a VLAN on it
         self.fullpath = tm.find_valid_path(self.src, self.dst, self.bandwidth)

@@ -137,6 +137,10 @@ class RestAPI(SingletonMixin):
     def page_not_found(e):
         return render_template('404.html'), 404
 
+    @app.errorhandler(500)
+    def page_not_found(e):
+        return render_template('500.html', error=e), 500
+
     # This builds a shibboleth session
     @staticmethod
     @app.route('/build_session')
@@ -189,9 +193,11 @@ class RestAPI(SingletonMixin):
                     app.logger.info('{} authorized for {}:{}' \
                                     .format(user, resource, permission))
                 else:
+                    raise AuthorizationInspectorError('You are not authorized to access {} > {}'.format(resource,permission) )
+                    '''
                     return flask.render_template('not_authorized.html', \
                                                  home=False, resource=resource, \
-                                                 permission=permission)
+                                                 permission=permission)'''
                 return f(*args, **kwargs)
 
             return wrapper
@@ -538,17 +544,7 @@ class RestAPI(SingletonMixin):
     @app.route('/rule', methods=['POST'])
     @authorize('rules', 'add')
     def make_new_pipe():
-        theID = "curlUser"
-
-        '''
-        try:
-            if _authorize_user('rule', 'add'):
-                theID = flask_login.current_user.id
-            else:
-                theID = "curlUser"
-        except:
-            pass
-        '''
+        theID = flask_login.current_user.id
 
         # TODO: YUUUGGGGGEEEE security hole here. Patch after demo.
         policy = None
@@ -580,6 +576,9 @@ class RestAPI(SingletonMixin):
                 "dstendpoint": request.form['dest'],
                 "dataquantity": int(request.form['size']) * int(request.form['unit'])}}
             policy = EndpointConnectionPolicy(theID, data)
+
+            #FIXME: EndpointConnectionPolicy is not getting set properly so I am doing it here
+            policy.bandwidth = data['endpointconnection']['dataquantity']
             rule_hash = RuleManager.instance().add_rule(policy)
 
         return flask.redirect('/rule/' + str(rule_hash))

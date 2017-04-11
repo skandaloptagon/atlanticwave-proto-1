@@ -79,15 +79,10 @@ class SDXController(SingletonMixin):
 
         # Initialize all the modules - Ordering is relatively important here
         self.aci = AuthenticationInspector.instance()
-        self.azi = AuthorizationInspector.instance(self.db)
         self.be = BreakdownEngine.instance()
         self.rr = RuleRegistry.instance()
         self.vi = ValidityInspector.instance()
 
-
-        lc_permissions = ["access","edit","delete"]
-        for lc in self.tm.get_lcs():
-            self.azi.add_resource(str(lc),lc_permissions)
 
         if mani != None:
             self.pm = ParticipantManager.instance(mani)
@@ -117,7 +112,7 @@ class SDXController(SingletonMixin):
 
         # User Manager
         self.um = UserManager.instance(self.db,True)
-
+ 
         # Start these modules last!
         if self.run_topo:
             self.rm = RuleManager.instance(self.db,
@@ -127,6 +122,11 @@ class SDXController(SingletonMixin):
             self.rm = RuleManager.instance(self.db,
                                            send_no_rules,
                                            send_no_rules)
+
+        self.azi = AuthorizationInspector.instance(self.db, self.um, self.rm)
+        lc_permissions = ["access"]
+        for lc in self.tm.get_lcs():
+            self.azi.add_resource(str(lc),lc_permissions)
 
         self.pm = ParticipantManager.instance()      #FIXME - Filename
         self.rapi = RestAPI.instance(options.host,options.port,options.shib)

@@ -279,7 +279,6 @@ class RuleManager(SingletonMixin):
             processing, including all the authorization checking. 
             Raises error if there are any problems.
             Returns breakdown of the rule if successful. '''
-        print "this"
 
         valid = None
         breakdown = None
