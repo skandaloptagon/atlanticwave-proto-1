@@ -543,6 +543,9 @@ class RestAPI(SingletonMixin):
     def show_network_topology():
         return flask.render_template('topology.html')
 
+    '''
+    This will not work with the way rules are now written.
+    '''
     @staticmethod
     @app.route('/batch_rule', methods=['POST'])
     # TODO: Write a decorator which checks command line users
@@ -555,58 +558,6 @@ class RestAPI(SingletonMixin):
             hashes.append(RuleManager.instance().add_rule(policy))
 
         return '<pre>%s</pre><p>%s</p>' % (json.dumps(data, indent=2), str(hashes))
-
-    '''
-    @staticmethod
-    @app.route('/rule', methods=['POST'])
-    @authorize('rules', 'add')
-    def make_new_pipe():
-        theID = flask_login.current_user.id
-
-        # TODO: Not a good way of selecting the policy, but it works well. 
-        #       Would only cause a problem if another policy is created 
-        #       which has the same parameters as l2tunnel.
-        policy = None
-        try:
-            request.form['dp']
-            policy = 'l2tunnel'
-        except:
-            request.form['deadline']
-            policy = 'endpointconnection'
-        
-        if policy == 'l2tunnel':
-
-            # Just making sure the datetimes are okay
-            starttime = datetime.strptime(str(pd(request.form['startdate'] + ' ' + request.form['starttime'])),
-                                          '%Y-%m-%d %H:%M:%S')
-            endtime = datetime.strptime(str(pd(request.form['enddate'] + ' ' + request.form['endtime'])),
-                                        '%Y-%m-%d %H:%M:%S')
-
-            # The Object to pass into L2TunnelPolicy
-            data = {"l2tunnel": {"starttime": str(starttime.strftime(rfc3339format)),
-                                 "endtime": str(endtime.strftime(rfc3339format)),
-                                 "srcswitch": request.form['source'],
-                                 "dstswitch": request.form['dest'],
-                                 "srcport": request.form['sp'],
-                                 "dstport": request.form['dp'],
-                                 "srcvlan": request.form['sv'],
-                                 "dstvlan": request.form['dv'],
-                                 "bandwidth": request.form['bw']}}
-
-            policy = L2TunnelPolicy(theID, data)
-            rule_hash = RuleManager.instance().add_rule(policy)
-        elif policy == 'endpointconnection':
-            data = {"endpointconnection": {
-                "deadline": request.form['deadline'] + ':00',
-                "srcendpoint": request.form['source'],
-                "dstendpoint": request.form['dest'],
-                "dataquantity": int(request.form['size']) * int(request.form['unit'])}}
-            policy = EndpointConnectionPolicy(theID, data)
-
-            rule_hash = RuleManager.instance().add_rule(policy)
-
-        return flask.redirect('/rule/' + str(rule_hash))
-    '''
 
     @staticmethod
     @app.route('/rule/ecp',methods=['GET','POST'])
