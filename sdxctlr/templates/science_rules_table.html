@@ -18,13 +18,13 @@
                 <tbody>
                     {% for rule in rules %}{% if rule[1]['endpointconnection'] %}
                     <tr>
-                        <td><a href="/rule/{{ rule[0]}}">{{ rule[0]}}</a></td>
+                        <td><a href="/rule/hash/{{ rule[0]}}">{{ rule[0]}}</a></td>
                         <td>{{ rule[1]['endpointconnection']['deadline'] }}</td>
                         <td>{{ rule[1]['endpointconnection']['srcendpoint'] }}</td>
                         <td>{{ rule[1]['endpointconnection']['dstendpoint'] }}</td>
                         <td>{{ rule[1]['endpointconnection']['dataquantity'] }}</td>
                         <td>{{ rule[3] }}</td>
-                        <td><form action="/rule/{{ rule[0] }}" method="POST"><button type="submit" class="btn btn-danger btn-lg">[x]</button></form></td>
+                        <td><form action="/rule/hash/{{ rule[0] }}?action=delete" method="POST"><button type="submit" class="btn btn-danger btn-lg">[x]</button></form></td>
                     </tr>
                     {% endif %}{% endfor %}
                 </tbody>

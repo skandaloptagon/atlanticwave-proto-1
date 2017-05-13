@@ -66,6 +66,9 @@ class AuthorizationInspector(SingletonMixin):
             bounds.append(bound)
         return bounds
 
+    def is_authorized(self):
+        return
+
     def touch_boundary(self, role):
         ''' this adds a row in the DB for a role. call this whenever a new role is added. '''
         self.logger.info("touch role, {}, for rule boundary".format(role))
@@ -381,6 +384,8 @@ class AuthorizationInspector(SingletonMixin):
 
 
     def _setup_acl(self):
+        #TODO: Build everything here from a manifest file.
+
         self.logger.info('Adding resources to new ACL')
 
         self.add_role('ADMIN')
@@ -393,9 +398,14 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.add_resource('ECP')
         self.acl.add_permission('ECP','view')
         self.acl.add_permission('ECP','create')
+        self.acl.grant('ECPUser','ECP','view')
+        self.acl.grant('ECPUser','ECP','create')
+
         self.acl.add_resource('L2T')
         self.acl.add_permission('L2T','view')
         self.acl.add_permission('L2T','create')
+        self.acl.grant('L2TUser','L2T','view')
+        self.acl.grant('L2TUser','L2T','create')
 
         self.acl.add_resource('rules')
         self.acl.add_permission('rules','search')
@@ -420,6 +430,10 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.add_resource('DTNs')
         self.acl.add_resource('Hosts')
         self.acl.add_resource('Switches')
+
+        self.set_rule_boundary('DEFAULT',"Number of Rules",3)
+        self.set_rule_boundary('DEFAULT',"BW Limit",5000000)
+        
 
         pp = pprint.PrettyPrinter(indent=4)
         # Create rules for topology

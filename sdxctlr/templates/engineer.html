@@ -1,32 +1,30 @@
-                    <form action="rule" method="POST" id="NetworkEngr" class="tabcontent">
+                    <form action="rule/l2t" method="GET" id="NetworkEngr" class="tabcontent">
                       <div class="col-sm-4">
-                        <p>Enter the start date: <input type="text" class="form-control" required="required" id="startdate" name="startdate"> </p> 
-                        <p>Enter the start time: <input type="time" class="form-control" required="required" id="starttime" name="starttime"> </p> 
-                        <p>Enter the end date: <input type="text" class="form-control" required="required" id="enddate" name="enddate"> </p> 
-                        <p>Enter the end time: <input type="time" class="form-control" required="required" id="endtime" name="endtime"> </p>           
+                        <p>Start time: <input type="datetime-local" class="form-control" id="starttime" name="starttime" required="required" value="2017-01-01T12:00"> </p>
+                        <p>End time: <input type="datetime-local" class="form-control" id="endtime" name="endtime" required="required" value="2017-01-01T12:00"> </p>
                       </div>
                       <div class="col-sm-4">
                         <p>Enter the desired bandwidth:
-                            <input type="number" class="form-control" required="required" id="bw" name="bw" placeholder="Bandwidth in GB" min="1" max="100"> </p>
+                            <input type="number" class="form-control" required="required" id="bandwidth" name="bandwidth" placeholder="Bandwidth in GB" min="1" max="100"> </p>
                             <p>Enter the physical port number at source:
-                            <input type="number" class="form-control" required="required" id="sp" name="sp" placeholder=" Source Port#" min="0" max="65535"> </p>
+                            <input type="number" class="form-control" required="required" id="srcport" name="srcport" placeholder=" Source Port#" min="0" max="65535"> </p>
                             <p>Enter the physical port number at destination:
-                            <input type="number" class="form-control" required="required" id="dp" name="dp" placeholder="Destination Port#" min="0" max="65535"> </p>
+                            <input type="number" class="form-control" required="required" id="dstport" name="dstport" placeholder="Destination Port#" min="0" max="65535"> </p>
                       </div>
 
                       <div class="col-sm-4">
                         <p>Enter the source VLAN:
-                            <input type="number" class="form-control" required="required" id="sv" name="sv" placeholder="Source VLAN" min="0" max="4090"> </p>
+                            <input type="number" class="form-control" required="required" id="srsvlan" name="srcvlan" placeholder="Source VLAN" min="0" max="4090"> </p>
                             <p>Enter the destination VLAN:
-                            <input type="number" class="form-control" required="required" id="dv" name="dv" placeholder="Destination VLAN" min="0" max="4090"> </p>
+                            <input type="number" class="form-control" required="required" id="dstvlan" name="dstvlan" placeholder="Destination VLAN" min="0" max="4090"> </p>
                       </div>
                       <div class="col-sm-4">
                         <p>Select source: 
-                        <select class="form-control" required="required" id="source" name="source">{% for item in switches %}
+                        <select class="form-control" required="required" id="srcswitch" name="srcswitch">{% for item in switches %}
                             <option value="{{ item }}">{{ switches[item] }}</option>{% endfor %}
                         </select> </p>
                         <p>Select destination: 
-                            <select class="form-control" id="dest" name="dest" required="required">{% for item in switches %}
+                            <select class="form-control" id="dstswitch" name="dstswitch" required="required">{% for item in switches %}
                                 <option value="{{ item }}">{{ switches[item] }}</option>{% endfor %}
                             </select> </p>
                       </div>

@@ -102,6 +102,8 @@ class RestAPI(SingletonMixin):
         UserManager.instance().add_user('jskandalakis3', '1234')
         # AuthorizationInspector.instance().add_role('ADMIN')
         UserManager.instance().assign_role('sdonovan', 'ADMIN')
+        UserManager.instance().assign_role('sdonovan', 'L2TUser')
+        UserManager.instance().assign_role('sdonovan', 'ECPUser')
 
         global shibboleth
         shibboleth = shib
@@ -584,15 +586,44 @@ class RestAPI(SingletonMixin):
         return flask.redirect('/rule/' + str(rule_hash))
 
     @staticmethod
-    @app.route('/rule/l2t')
-    @authorize('rules', 'add')
+    @app.route('/rule/ecp',methods=['GET','POST'])
+    @authorize('ECP', 'create')
+    def make_ECP():
+        rule = "endpointconnection"
+        data = {}
+        try:
+            if 'deadline' in request.args:
+                data["deadline"] = request.args["deadline"]
+                data["srcendpoint"] = request.args["srcendpoint"]
+                data["dstendpoint"] = request.args["dstendpoint"]
+                data["dataquantity"] = request.args["dataquantity"]
+            elif 'deadline' in request.form:
+                data["deadline"] = request.form["deadline"]+':00'
+                data["srcendpoint"] = request.form["srcendpoint"]
+                data["dstendpoint"] = request.form["dstendpoint"]
+                data["dataquantity"] = int(request.form["dataquantity"])*int(request.form["unit"])
+            else: raise Exception('invalid rule')
+        except: raise Exception('Invalid Rule Parameters')
+
+        data = {rule:data}
+        print data
+
+        policy = EndpointConnectionPolicy(flask_login.current_user.id,data)
+        rule_hash = RuleManager.instance().add_rule(policy)
+
+        data["hash"] = rule_hash
+        
+        if 'datatype' in request.args and request.args['datatype'] == 'json':
+            return json.dumps(data)
+        else:
+            return flask.redirect('/rule/hash/' + str(rule_hash))
+
+    @staticmethod
+    @app.route('/rule/l2t',methods=['GET','POST'])
+    @authorize('L2T', 'create')
     def make_L2T():
         rule = "l2tunnel"
-        data = {
-            "starttime":None,
-            "endtime":None,
-            "endpoints": [],
-            "bandwidth": None}
+        data = {}
         try:
             if 'starttime' in request.args:
                 data["starttime"] = request.args["starttime"]
@@ -603,17 +634,17 @@ class RestAPI(SingletonMixin):
                 data["dstport"] = request.args["dstport"]
                 data["srcvlan"] = request.args["srcvlan"]
                 data["dstvlan"] = request.args["dstvlan"]
-                data["bandwidth"] = request.args["bandwidth"]
+                data["bandwidth"] = int(request.args["bandwidth"])
             elif 'starttime' in request.form:
-                data["starttime"] = request.form["starttime"]
-                data["endtime"] = request.form["endtime"]
+                data["starttime"] = request.form["starttime"]+':00'
+                data["endtime"] = request.form["endtime"]+':00'
                 data["srcswitch"] = request.form["srcswitch"]
                 data["dstswitch"] = request.form["dstswitch"]
                 data["srcport"] = request.form["srcport"]
                 data["dstport"] = request.form["dstport"]
                 data["srcvlan"] = request.form["srcvlan"]
                 data["dstvlan"] = request.form["dstvlan"]
-                data["bandwidth"] = request.form["bandwidth"]
+                data["bandwidth"] = int(request.form["bandwidth"])
             else: raise Exception('invalid rule')
         except: raise Exception('Invalid Rule Parameters')
 
@@ -624,29 +655,28 @@ class RestAPI(SingletonMixin):
 
         data["hash"] = rule_hash
 
-        return str(data)
+        if 'datatype' in request.args and request.args['datatype'] == 'json':
+            return json.dumps(data)
+        else:
+            return flask.redirect('/rule/hash/' + str(rule_hash))
 
     @staticmethod
-    @app.route('/rule/l2m')
-    @authorize('rules', 'add')
+    @app.route('/rule/l2m',methods=['GET','POST'])
+    @authorize('L2T', 'create')
     def make_L2M():
         rule = "l2multipoint"
-        data = {
-            "starttime":None,
-            "endtime":None,
-            "endpoints": [],
-            "bandwidth": None}
+        data = {}
         try:
             if 'starttime' in request.args:
                 data["starttime"] = request.args["starttime"]
                 data["endtime"] = request.args["endtime"]
                 endpoints = request.args["endpoints"]
-                data["bandwidth"] = request.args["bandwidth"]
+                data["bandwidth"] = int(request.args["bandwidth"])
             elif 'starttime' in request.form:
-                data["starttime"] = request.form["starttime"]
-                data["endtime"] = request.form["endtime"]
+                data["starttime"] = request.form["starttime"]+':00'
+                data["endtime"] = request.form["endtime"]+':00'
                 endpoints = request.form["endpoints"]
-                data["bandwidth"] = request.form["bandwidth"]
+                data["bandwidth"] = int(request.form["bandwidth"])
             else: raise Exception('invalid rule')
         except: raise Exception('Invalid Rule Parameters')
 
@@ -659,25 +689,38 @@ class RestAPI(SingletonMixin):
         policy = L2MultipointPolicy(flask_login.current_user.id,data)
         rule_hash = RuleManager.instance().add_rule(policy)
 
-        return str(data)
+        data["hash"] = rule_hash
+
+        if 'datatype' in request.args and request.args['datatype'] == 'json':
+            return json.dumps(data)
+        else:
+            return flask.redirect('/rule/hash/' + str(rule_hash))
 
     # Get information about a specific rule IDed by hash.
     @staticmethod
-    @app.route('/rule/<rule_hash>', methods=['GET', 'POST'])
+    @app.route('/rule/hash/<rule_hash>', methods=['GET', 'POST'])
     @authorize('rules', 'hash')
     def get_rule_details_by_hash(rule_hash):
+        detail = None
+        try:
+            detail = RuleManager.instance().get_rule_details(rule_hash)
+        except Exception as e:
+            if 'datatype' in request.args and request.args['datatype'] == 'json':
+                return {'error':'invalid hash'}
+            raise Exception("Invalid rule hash")
 
         # Shows info for rule
         if request.method == 'GET':
-            try:
-                detail = RuleManager.instance().get_rule_details(rule_hash)
-                return flask.render_template('details.html', detail=detail)
-            except Exception as e:
-                return "Invalid rule hash"
+            if 'datatype' in request.args and request.args['datatype'] == 'json':
+                return json.dumps(detail)
+            return flask.render_template('details.html', detail=detail)
 
         # Deletes Rules : POST because HTML does not support DELETE Requests
         if request.method == 'POST':
-            RuleManager.instance().remove_rule(rule_hash, flask_login.current_user.id)
+            if 'action' in request.args and request.args['action'] == 'delete':
+                RuleManager.instance().remove_rule(rule_hash, flask_login.current_user.id)
+            if 'datatype' in request.args and request.args['datatype'] == 'json':
+                return json.dumps(detail)
             return flask.redirect(flask.url_for('get_rules'))
 
         # Handles other HTTP request methods
@@ -686,12 +729,13 @@ class RestAPI(SingletonMixin):
 
     # Get a list of rules that match certain filters or a query.
     @staticmethod
-    @app.route('/rule/all/', methods=['GET', 'POST'])
+    @app.route('/rule/all', methods=['GET', 'POST'])
     @authorize('rules', 'search')
     def get_rules():
         # TODO: Throws exception currently
         if request.method == 'POST':
-            RuleManager.instance().remove_all_rules(flask_login.current_user.id)
+            if 'action' in request.args and request.args['action'] == 'delete':
+                RuleManager.instance().remove_all_rules(flask_login.current_user.id)
 
         user = flask_login.current_user.get_id()
         roles = UserManager.instance().get_user(user)['role']
@@ -701,8 +745,15 @@ class RestAPI(SingletonMixin):
 
         policy = {'ecp':ecp, 'l2t':l2t, 'delete':False}
 
-        return flask.render_template('rules.html',\
-                    rules=RuleManager.instance().get_rules(), policy=policy)
+        sort = request.args['sort'] if 'sort' in request.args else None
+        query = request.args['query'] if 'query' in request.args else {}
+
+        rules = RuleManager.instance().get_rules(filter=query, ordering=sort)
+
+        if 'datatype' in request.args and request.args['datatype'] == 'json':
+            return json.dumps(rules)
+
+        return flask.render_template('rules.html', rules=rules, policy=policy)
 
     # Get a list of rules that match certain filters or a query.
     @staticmethod

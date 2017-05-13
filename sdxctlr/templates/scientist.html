@@ -1,22 +1,25 @@
-                    <form action="rule" method="POST" id="Scientist" class="tabcontent">
+                    <form action="rule/ecp" method="GET" id="Scientist" class="tabcontent">
                       <div class="col-sm-4"></div>
                       <div class="col-sm-4">
                         <p>Source:  
-                            <select class="form-control" required="required" id="source" name="source">{% for item in dtns %}
+                            <select class="form-control" required="required" id="srcendpoint" name="srcendpoint">{% for item in dtns %}
                                 <option value="{{ item }}">{{ dtns[item] }}</option>
                                 {% endfor %}
                             </select>
                         </p>
                         <p>Destination:  
-                            <select class="form-control" required="required" id="dest" name="dest">{% for item in dtns %}
+                            <select class="form-control" required="required" id="dstendpoint" name="dstendpoint">{% for item in dtns %}
                                 <option value="{{ item }}">{{ dtns[item] }}</option>{% endfor %}
                             </select>
                         </p>
                         <p>Deadline:
-                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" required="required">
+                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" required="required" value="2017-01-01T12:00:01">
+                            <script src=https://momentjs.com/downloads/moment.min.js>
+                            document.getElementById("deadline").value = new Date();
+                            </script>
                         </p>
                         <p>Size:
-                            <input type="number" class="form-control" required="required" id="size" name="size" size=8>
+                            <input type="number" class="form-control" required="required" id="dataquantity" name="dataquantity" size=8>
                             <select class="form-control" required="required" id="unit" name="unit">
                                 <option value="1">bytes</option> 
                                 <option value="1000">Kb</option>
