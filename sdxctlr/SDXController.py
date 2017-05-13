@@ -124,9 +124,6 @@ class SDXController(SingletonMixin):
                                            send_no_rules)
 
         self.azi = AuthorizationInspector.instance(self.db, self.um, self.rm)
-        lc_permissions = ["access"]
-        for lc in self.tm.get_lcs():
-            self.azi.add_resource(str(lc),lc_permissions)
 
         self.pm = ParticipantManager.instance()      #FIXME - Filename
         self.rapi = RestAPI.instance(options.host,options.port,options.shib)

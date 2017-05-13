@@ -141,7 +141,6 @@ class RuleManager(SingletonMixin):
         rule.pre_add_callback(TopologyManager.instance(),
                               AuthorizationInspector.instance())
         self._add_rule_to_db(rule)
-            
         return rulehash
         
 
@@ -166,7 +165,7 @@ class RuleManager(SingletonMixin):
         rule = pickle.loads(str(self.rule_table.find_one(hash=rule_hash)['rule']))
         authorized = None
         try:
-            authorized = AuthorizationInspector.instance().is_rule_authorized(user, rule) #FIXME
+            authorized = AuthorizationInspector.instance().is_remove_authorized(user, rule)
         except Exception as e:
             raise RuleManagerAuthorizationError("User %s is not authorized to remove rule %s with exception %s" % (user, rule_hash, str(e)))
         if authorized != True:
@@ -283,6 +282,7 @@ class RuleManager(SingletonMixin):
         valid = None
         breakdown = None
         authorized = None
+
         # Check if valid rule
         try:
             valid = ValidityInspector.instance().is_valid_rule(rule)
@@ -295,7 +295,7 @@ class RuleManager(SingletonMixin):
         # Get the breakdown of the rule
         try:
             breakdown = BreakdownEngine.instance().get_breakdown(rule)
-        except Exception as e: raise
+        except Exception as e: raise RuleManagerBreakdownError(e)
 
         if breakdown == None:
             raise RuleManagerBreakdownError(
@@ -305,11 +305,10 @@ class RuleManager(SingletonMixin):
         try:
             authorized = AuthorizationInspector.instance().is_rule_authorized(rule.username, rule)
         except Exception as e: raise
-            
+
         if authorized != True:
             raise RuleManagerAuthorizationError(
                 "Rule is not authorized: %s" % rule)
-
         return breakdown
 
     def _add_rule_to_db(self, rule):

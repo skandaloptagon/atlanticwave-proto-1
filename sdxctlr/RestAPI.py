@@ -194,10 +194,6 @@ class RestAPI(SingletonMixin):
                                     .format(user, resource, permission))
                 else:
                     raise AuthorizationInspectorError('You are not authorized to access {} > {}'.format(resource,permission) )
-                    '''
-                    return flask.render_template('not_authorized.html', \
-                                                 home=False, resource=resource, \
-                                                 permission=permission)'''
                 return f(*args, **kwargs)
 
             return wrapper
@@ -214,11 +210,6 @@ class RestAPI(SingletonMixin):
                                          current_user="Sign in", \
                                          logged_out=True, home=True, \
                                          shibboleth=shibboleth)
-            '''
-            if shibboleth:
-                return app.send_static_file('static/index_shibboleth.html')
-            return app.send_static_file('static/index.html')
-            '''
         else:
             # Get the Topo for dynamic list gen
             G = TopologyManager.instance().get_topology()
@@ -236,10 +227,18 @@ class RestAPI(SingletonMixin):
                     if node["type"] == "switch":
                         switches[node_id] = fname
 
+            user = flask_login.current_user.get_id()
+            roles = UserManager.instance().get_user(user)['role']
+
+            ecp = AuthorizationInspector.instance().is_user_authorized(roles,'ECP','create') 
+            l2t = AuthorizationInspector.instance().is_user_authorized(roles,'L2T','create') 
+
+            policy= {'ecp':ecp,'l2t':l2t}
+
             # Pass to flask to render a template
             return flask.render_template('index.html', \
                                          home=True, switches=switches,
-                                         dtns=dtns)
+                                         dtns=dtns, policy=policy)
 
     # Preset the login form to the user and request to log user in
     @staticmethod
@@ -426,7 +425,7 @@ class RestAPI(SingletonMixin):
         
         auth = Auth()
         if auth!=None:
-            return auth
+            raise AuthorizationInspectorError()
 
         user = UserManager.instance().get_user(username)
 
@@ -455,13 +454,7 @@ class RestAPI(SingletonMixin):
             signed in. It does not handle Authentication. This is handled 
             in AuthenticationInspector. '''
         flask_login.logout_user()
-        return flask.redirect(flask.url_for('home') + '?n=' + str(time.time()))
-
-    @staticmethod
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        # do stuff
-        return flask.render_template('404.html')
+        return flask.redirect(flask.url_for('home'))
 
     # Access information about a user
     @staticmethod
@@ -546,9 +539,18 @@ class RestAPI(SingletonMixin):
     def make_new_pipe():
         theID = flask_login.current_user.id
 
-        # TODO: YUUUGGGGGEEEE security hole here. Patch after demo.
+        # TODO: Not a good way of selecting the policy, but it works well. 
+        #       Would only cause a problem if another policy is created 
+        #       which has the same parameters as l2tunnel.
         policy = None
         try:
+            request.form['dp']
+            policy = 'l2tunnel'
+        except:
+            request.form['deadline']
+            policy = 'endpointconnection'
+        
+        if policy == 'l2tunnel':
 
             # Just making sure the datetimes are okay
             starttime = datetime.strptime(str(pd(request.form['startdate'] + ' ' + request.form['starttime'])),
@@ -569,7 +571,7 @@ class RestAPI(SingletonMixin):
 
             policy = L2TunnelPolicy(theID, data)
             rule_hash = RuleManager.instance().add_rule(policy)
-        except:
+        elif policy == 'endpointconnection':
             data = {"endpointconnection": {
                 "deadline": request.form['deadline'] + ':00',
                 "srcendpoint": request.form['source'],
@@ -577,11 +579,87 @@ class RestAPI(SingletonMixin):
                 "dataquantity": int(request.form['size']) * int(request.form['unit'])}}
             policy = EndpointConnectionPolicy(theID, data)
 
-            #FIXME: EndpointConnectionPolicy is not getting set properly so I am doing it here
-            policy.bandwidth = data['endpointconnection']['dataquantity']
             rule_hash = RuleManager.instance().add_rule(policy)
 
         return flask.redirect('/rule/' + str(rule_hash))
+
+    @staticmethod
+    @app.route('/rule/l2t')
+    @authorize('rules', 'add')
+    def make_L2T():
+        rule = "l2tunnel"
+        data = {
+            "starttime":None,
+            "endtime":None,
+            "endpoints": [],
+            "bandwidth": None}
+        try:
+            if 'starttime' in request.args:
+                data["starttime"] = request.args["starttime"]
+                data["endtime"] = request.args["endtime"]
+                data["srcswitch"] = request.args["srcswitch"]
+                data["dstswitch"] = request.args["dstswitch"]
+                data["srcport"] = request.args["srcport"]
+                data["dstport"] = request.args["dstport"]
+                data["srcvlan"] = request.args["srcvlan"]
+                data["dstvlan"] = request.args["dstvlan"]
+                data["bandwidth"] = request.args["bandwidth"]
+            elif 'starttime' in request.form:
+                data["starttime"] = request.form["starttime"]
+                data["endtime"] = request.form["endtime"]
+                data["srcswitch"] = request.form["srcswitch"]
+                data["dstswitch"] = request.form["dstswitch"]
+                data["srcport"] = request.form["srcport"]
+                data["dstport"] = request.form["dstport"]
+                data["srcvlan"] = request.form["srcvlan"]
+                data["dstvlan"] = request.form["dstvlan"]
+                data["bandwidth"] = request.form["bandwidth"]
+            else: raise Exception('invalid rule')
+        except: raise Exception('Invalid Rule Parameters')
+
+        data = {rule:data}
+
+        policy = L2TunnelPolicy(flask_login.current_user.id,data)
+        rule_hash = RuleManager.instance().add_rule(policy)
+
+        data["hash"] = rule_hash
+
+        return str(data)
+
+    @staticmethod
+    @app.route('/rule/l2m')
+    @authorize('rules', 'add')
+    def make_L2M():
+        rule = "l2multipoint"
+        data = {
+            "starttime":None,
+            "endtime":None,
+            "endpoints": [],
+            "bandwidth": None}
+        try:
+            if 'starttime' in request.args:
+                data["starttime"] = request.args["starttime"]
+                data["endtime"] = request.args["endtime"]
+                endpoints = request.args["endpoints"]
+                data["bandwidth"] = request.args["bandwidth"]
+            elif 'starttime' in request.form:
+                data["starttime"] = request.form["starttime"]
+                data["endtime"] = request.form["endtime"]
+                endpoints = request.form["endpoints"]
+                data["bandwidth"] = request.form["bandwidth"]
+            else: raise Exception('invalid rule')
+        except: raise Exception('Invalid Rule Parameters')
+
+        # Process Endpoints here:
+        d = json.loads(endpoints)
+        data['endpoints'] = d['endpoints']
+
+        data = {rule:data}
+
+        policy = L2MultipointPolicy(flask_login.current_user.id,data)
+        rule_hash = RuleManager.instance().add_rule(policy)
+
+        return str(data)
 
     # Get information about a specific rule IDed by hash.
     @staticmethod
@@ -614,8 +692,17 @@ class RestAPI(SingletonMixin):
         # TODO: Throws exception currently
         if request.method == 'POST':
             RuleManager.instance().remove_all_rules(flask_login.current_user.id)
+
+        user = flask_login.current_user.get_id()
+        roles = UserManager.instance().get_user(user)['role']
+
+        ecp = AuthorizationInspector.instance().is_user_authorized(roles,'ECP','view')
+        l2t = AuthorizationInspector.instance().is_user_authorized(roles,'L2T','view')
+
+        policy = {'ecp':ecp, 'l2t':l2t, 'delete':False}
+
         return flask.render_template('rules.html',\
-                    rules=RuleManager.instance().get_rules())
+                    rules=RuleManager.instance().get_rules(), policy=policy)
 
     # Get a list of rules that match certain filters or a query.
     @staticmethod

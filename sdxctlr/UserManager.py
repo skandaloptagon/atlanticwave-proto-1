@@ -38,7 +38,7 @@ class UserManager(SingletonMixin):
 
         if True: #TODO: security policy
             AuthorizationInspector.instance().add_role(user)
-            AuthorizationInspector.instance().add_resource(user,['setting','show'])
+            AuthorizationInspector.instance().add_resource(user,['setting','RemoveRule'])
             AuthorizationInspector.instance().set_authorization(user, user, 'setting')
             AuthorizationInspector.instance().set_authorization('ADMIN', user, 'setting')
             AuthorizationInspector.instance().set_authorization(user, user, 'show')

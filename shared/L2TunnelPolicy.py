@@ -105,7 +105,7 @@ class L2TunnelPolicy(UserPolicy):
     def breakdown_rule(self, tm, ai):
         self.breakdown = []
         topology = tm.get_topology()
-        authorization_func = ai.is_authorized
+        authorization_func = ai.is_rule_authorized
         # Get a path from the src_switch to the dst_switch form the topology
         #FIXME: This needs to be updated to get *multiple* options
         self.fullpath = tm.find_valid_path(self.src_switch,
@@ -121,7 +121,6 @@ class L2TunnelPolicy(UserPolicy):
         #print json.dumps(nodes, indent=2)
         #print "\n\nEDGES:"
         #print json.dumps(edges, indent=2)
-        
         # Get a VLAN to use
         # Topology manager should be able to provide this for us. 
         self.intermediate_vlan = tm.find_vlan_on_path(self.fullpath)
@@ -129,7 +128,6 @@ class L2TunnelPolicy(UserPolicy):
             raise UserPolicyError("There are no available VLANs on path %s for rule %s" % (self.fullpath, self))
         tm.reserve_vlan_on_path(self.fullpath, self.intermediate_vlan)
         tm.reserve_bw_on_path(self.fullpath, self.bandwidth)
-
         # Special case: Single node:
         if len(self.fullpath) == 1:
             if (self.src_switch != self.dst_switch):
@@ -152,7 +150,6 @@ class L2TunnelPolicy(UserPolicy):
             self.breakdown.append(bd)
             return self.breakdown
 
-        
         # Create breakdown rule for this node
 
         # First and last are different, due to the VLAN translation necessary

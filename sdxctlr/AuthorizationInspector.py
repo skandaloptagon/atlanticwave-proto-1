@@ -10,7 +10,10 @@ from shared.constants import *
 
 from miracle import Acl
 
+from TopologyManager import TopologyManager
+
 import time
+from math import ceil
 # normally I am opposed to pickle, but for this specific situation it is okay. 
 # Change to msgpack if transfering the acl across systems.
 import pickle
@@ -128,40 +131,62 @@ class AuthorizationInspector(SingletonMixin):
         ''' Take a username, startdate, and enddate and returns the largest amount 
             of BW during that time period. Use this to check if a user will go over the 
             limit by adding the returned value to the desired value to add. '''
-        #TODO: Figure this algorith out. It should be linear.
         limit = self._user_bw_limit(user)
         events = []
+
+        #FIXME: Currently, bw is filled using the dataquantity which is not correct. 
+        #       This should be done with the actual bandwidth
         for rule in self.rm.get_rules():
             if rule[-2]!=user:
                 continue
+
+            bw = None
+            end = None
+            start = None
             if rule[-3] == 'EndpointConnection':
-                bw = rule[1]['endpointconnection']['dataquantity']
+
+                data = rule[1]['endpointconnection']['dataquantity']
+
+                # This start time may be incorrect, but it is not contained in EndPointConnectionPolicy.
                 start = int(time.time())
+
                 date_time = rule[1]['endpointconnection']['deadline']
                 end = int(time.mktime(time.strptime(date_time, rfc3339format)))
-                events.append((bw, True, start))
-                events.append((bw, False,end))
-            elif rule[-3] == 'L2Tunnel':
-                bw = rule[1]['EndpointConnection']['dataquantity']
-                date_time = rule[1]['l2tunnel']['start_time']
-                start = int(time.mktime(time.strptime(date_time, rfc3339format)))
-                date_time = rule[1]['l2tunnel']['end_time']
-                end = int(time.mktime(time.strptime(date_time, rfc3339format)))
-                events.append((bw, True, start))
-                events.append((bw, False,end))
 
+            elif rule[-3] == 'L2Tunnel':
+
+                date_time = rule[1]['l2tunnel']['starttime']
+                start = int(time.mktime(time.strptime(date_time, rfc3339format)))
+
+                date_time = rule[1]['l2tunnel']['endtime']
+                end = int(time.mktime(time.strptime(date_time, rfc3339format)))
+
+            total_time = end - start
+
+            # Compute the bw for the rule
+            bw = int(ceil(max(data/(total_time - EndpointConnectionPolicy.buffer_time_sec),
+                                  (data/total_time)*EndpointConnectionPolicy.buffer_bw_percent)))
+
+            # append these as events for the algorithm below.
+            events.append((bw, True, start))
+            events.append((bw, False,end))
+
+
+        # Simple algorithm to compute the max sum. Adds bw at start 
+        # of rule time and removes bw at the end of rule time and
+        # appends this value to a list at every change. Then it just
+        # gets the max from that list.
         time_table = [0]
         current_bw = 0
-
         for event in sorted(events, key=lambda x:x[2]):
-            if event[2] < startdate or event[2] > enddate:
-                continue
-            elif event[1]:
+            if event[1]:
                 current_bw += event[0]
             else:
                 current_bw -= event[0]
-            time_table.append(current_bw)
+            if event[2] > startdate or event[2] < enddate:
+                time_table.append(current_bw)
             
+        self.logger.debug("Time table: {}".format(time_table))
         return max(time_table)
 
     def _is_node_authorized(self, user, node):
@@ -216,14 +241,33 @@ class AuthorizationInspector(SingletonMixin):
         if len(blocked_nodes) > 0:
             raise AuthorizationInspectorError('You are not authorized to access the following nodes: {}'.format(', '.join(blocked_nodes)))
 
-        # Check Boundary Limit for BW
-        current_bw = self._max_bw_for_user(user, startdate, enddate)
+
+        # Get the highest bound limit for each role. Not 100% sure if this is how we want to limit users
+        rule_limit = 0
         bw_bound = 0
         for role in self.um.get_user(user)['role']:
+            tmp_limit = self.get_rule_boundary(role, "Number of Rules")
+            if tmp_limit > rule_limit:
+                rule_limit = tmp_limit
+
             role_bw = self.get_rule_boundary(role, "BW Limit")
             if role_bw > bw_bound:
                 bw_bound = role_bw
 
+        # TODO: check number of rules
+        rule_number = 0
+        for rule in self.rm.get_rules():
+            print rule[-2]
+            if user == rule[-2]:
+                rule_number += 1
+        print "rule limit", rule_limit, rule_number
+        if rule_number >= rule_limit:
+            raise AuthorizationInspectorError(''' You have created {} rules, exceding your limit of {}. '''.format(rule_number, rule_limit))
+
+
+        # Check Boundary Limit for BW
+        #TODO:ToCToU Vulnerability.
+        current_bw = self._max_bw_for_user(user, startdate, enddate)
         if current_bw + bandwidth > bw_bound:
             raise AuthorizationInspectorError('''You are using a peak of {} bps 
                 during this time period and you are requesting {} bps, which will 
@@ -231,6 +275,8 @@ class AuthorizationInspector(SingletonMixin):
 
         return True
 
+    def is_remove_authorized(self, user, rule):
+        return True
 
     def is_user_authorized(self, roles, resource, permission):
         ''' Returns true if user is allowed to take a particular action, false 
@@ -339,6 +385,17 @@ class AuthorizationInspector(SingletonMixin):
 
         self.add_role('ADMIN')
         self.add_role('DEFAULT')
+        self.add_role('ECPUser')
+        self.add_role('L2TUser')
+        self.add_role('NOwner')
+        self.add_role('NOperator')
+
+        self.acl.add_resource('ECP')
+        self.acl.add_permission('ECP','view')
+        self.acl.add_permission('ECP','create')
+        self.acl.add_resource('L2T')
+        self.acl.add_permission('L2T','view')
+        self.acl.add_permission('L2T','create')
 
         self.acl.add_resource('rules')
         self.acl.add_permission('rules','search')
@@ -358,6 +415,23 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.grant('ADMIN','rules', 'add')
         self.acl.grant('ADMIN','rules', 'delete')
         self.acl.grant('ADMIN','topo', 'show')
+
+        import pprint
+        self.acl.add_resource('DTNs')
+        self.acl.add_resource('Hosts')
+        self.acl.add_resource('Switches')
+
+        pp = pprint.PrettyPrinter(indent=4)
+        # Create rules for topology
+        topo = TopologyManager.instance().get_topology()
+        for node in topo.nodes(data=True):
+            print node
+            if node[1]['type'] == 'dtn':
+                self.acl.add_permission('DTNs',node[0])
+            elif node[1]['type'] == 'switch':
+                self.acl.add_permission('Switches',node[0])
+            elif node[1]['type'] == 'host':
+                self.acl.add_permission('Hosts',node[0])
 
         self._save_acl()
 

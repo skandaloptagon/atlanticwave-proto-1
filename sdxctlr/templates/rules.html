@@ -3,11 +3,11 @@
 {% block content %}
     <section id="rules-table">
         <div class="container">
-{% include "engineer_rules_table.html" %}
-{% include "science_rules_table.html" %}
-            <form action="/rule/all/" method="POST" onsubmit="return confirm('Are you sure you want to delete all rules?');">
+{% if policy['l2t'] %}{% include "engineer_rules_table.html" %}{% endif %}
+{% if policy['ecp']  %}{% include "science_rules_table.html" %}{% endif %}
+            {% if policy['delete'] %} <form action="/rule/all/" method="POST" onsubmit="return confirm('Are you sure you want to delete all rules?');">
                 <button type="submit" class="btn btn-danger btn-lg" align="center">Delete All Rules</button>
-            </form>
+            </form> {% endif %}
         </div>
     </section>
 {% endblock %}
