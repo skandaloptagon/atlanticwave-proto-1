@@ -155,6 +155,11 @@ class AuthorizationInspector(SingletonMixin):
 
                 date_time = rule[1]['endpointconnection']['deadline']
                 end = int(time.mktime(time.strptime(date_time, rfc3339format)))
+                
+                
+                # Compute the bw for the rule
+                bw = int(ceil(max(data/(total_time - EndpointConnectionPolicy.buffer_time_sec),
+                                  (data/total_time)*EndpointConnectionPolicy.buffer_bw_percent)))
 
             elif rule[-3] == 'L2Tunnel':
 
@@ -164,11 +169,10 @@ class AuthorizationInspector(SingletonMixin):
                 date_time = rule[1]['l2tunnel']['endtime']
                 end = int(time.mktime(time.strptime(date_time, rfc3339format)))
 
+                bw = rule[1]['l2tunnel']['bandwidth']
+
             total_time = end - start
 
-            # Compute the bw for the rule
-            bw = int(ceil(max(data/(total_time - EndpointConnectionPolicy.buffer_time_sec),
-                                  (data/total_time)*EndpointConnectionPolicy.buffer_bw_percent)))
 
             # append these as events for the algorithm below.
             events.append((bw, True, start))
@@ -418,6 +422,7 @@ class AuthorizationInspector(SingletonMixin):
 
         self.acl.add_resource('settings')
         self.acl.add_permission('settings','admin')
+        self.acl.add_permission('settings','appkey')
 
         self.acl.grant('ADMIN','settings', 'admin')
         self.acl.grant('ADMIN','rules', 'search')
@@ -425,6 +430,8 @@ class AuthorizationInspector(SingletonMixin):
         self.acl.grant('ADMIN','rules', 'add')
         self.acl.grant('ADMIN','rules', 'delete')
         self.acl.grant('ADMIN','topo', 'show')
+
+        self.acl.grant('DEFAULT','settings','appkey')
 
         import pprint
         self.acl.add_resource('DTNs')

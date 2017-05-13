@@ -1,6 +1,8 @@
 # Copyright 2016 - Sean Donovan
 # AtlanticWave/SDX Project
 
+import os
+
 import dataset
 import cPickle as pickle
 import logging
@@ -46,8 +48,26 @@ class UserManager(SingletonMixin):
 
         settings = self._build_default_settings()
 
-        self.user_table.insert(dict(email=user,password=hash, role=pickle.dumps(role), settings=pickle.dumps(settings)))
+        self.user_table.insert(dict(email=user, appkey='', password=hash, role=pickle.dumps(role), settings=pickle.dumps(settings)))
         pass
+
+    def update_appkey(self, username):
+        ''' generates and adds a new appkey for a user. This key should only 
+            every be viewed one time through the system. If the user loses a 
+            key, they should generate a new one. '''
+
+        user = self.get_user(username)
+
+        key = os.urandom(24).encode('hex')
+        hash = pbkdf2_sha256.hash(key)
+
+        user['appkey'] = str(hash)
+
+        user = self._format_db_entry(user)
+
+        self.user_table.update(user, ['email'])
+
+        return key
 
     def remove_user(self, user):
         ''' Removes the rule that corresponds to the rule_hash that wa returned 
@@ -127,6 +147,7 @@ class UserManager(SingletonMixin):
         temp_user = {}
         temp_user['email']=user['email']
         temp_user['password']=user['password']
+        temp_user['appkey']=user['appkey']
         temp_user['role']=pickle.loads(str(user['role']))
         temp_user['settings']=pickle.loads(str(user['settings']))
         return temp_user
@@ -136,6 +157,7 @@ class UserManager(SingletonMixin):
         temp_user = {}
         temp_user['email']=user['email']
         temp_user['password']=user['password']
+        temp_user['appkey']=user['appkey']
         temp_user['role']=pickle.dumps(user['role'])
         temp_user['settings']=pickle.dumps(user['settings'])
         return temp_user

@@ -50,6 +50,11 @@ class AuthenticationInspector(SingletonMixin):
             # The user does not Exist
             return False
 
+    def check_key(self, username, key):
+        if not pbkdf2_sha256.verify(key, UserManager.instance().get_user(username)['appkey']):
+            return False
+        return True
+
     def add_users(self, list_of_authentications):
         ''' Used to add a list of user, credential pairs. List_of_authentications
             is a list of user, credential tuples.

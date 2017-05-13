@@ -135,6 +135,10 @@ class RestAPI(SingletonMixin):
     class User(flask_login.UserMixin):
         pass
 
+    @app.errorhandler(401)
+    def page_not_found(e):
+        return json.dumps({"error":"bad authentication"}), 401
+
     @app.errorhandler(404)
     def page_not_found(e):
         return render_template('404.html'), 404
@@ -188,8 +192,17 @@ class RestAPI(SingletonMixin):
         def decorator(f):
             @wraps(f)
             def wrapper(*args, **kwargs):
-                user = flask_login.current_user.id
+                user = None
+                if request.args.get('key') and request.args.get('user'):
+                    user = request.args.get('user')
+                    key = request.args.get('key')
+                    if not AuthenticationInspector.instance().check_key(user,key):
+                        abort(401)
+                else:
+                    user = flask_login.current_user.id
+
                 roles = UserManager.instance().get_user(user)['role']
+
                 if AuthorizationInspector.instance() \
                         .is_user_authorized(roles, resource, permission):
                     app.logger.info('{} authorized for {}:{}' \
@@ -270,6 +283,14 @@ class RestAPI(SingletonMixin):
             return username + password
         else:
             return flask.render_template('new_user.html', home=False)
+
+    @staticmethod
+    @app.route('/settings/appkey')
+    @authorize('settings', 'appkey')
+    def generate_appkey():
+        username = flask_login.current_user.id
+        key = UserManager.instance().update_appkey(username)
+        return json.dumps({'client':username,'appkey':key})
 
     # TODO: Combine this with the resource forms endpoint as the POST
     @staticmethod
@@ -535,6 +556,7 @@ class RestAPI(SingletonMixin):
 
         return '<pre>%s</pre><p>%s</p>' % (json.dumps(data, indent=2), str(hashes))
 
+    '''
     @staticmethod
     @app.route('/rule', methods=['POST'])
     @authorize('rules', 'add')
@@ -584,16 +606,26 @@ class RestAPI(SingletonMixin):
             rule_hash = RuleManager.instance().add_rule(policy)
 
         return flask.redirect('/rule/' + str(rule_hash))
+    '''
 
     @staticmethod
     @app.route('/rule/ecp',methods=['GET','POST'])
     @authorize('ECP', 'create')
     def make_ECP():
+
+        username = None
+        if request.args.get('user'):
+            username = request.args.get('user')
+        elif flask_login.current_user.id:
+            username = flask_login.current_user.id
+        else:
+            raise Exception()
+
         rule = "endpointconnection"
         data = {}
         try:
             if 'deadline' in request.args:
-                data["deadline"] = request.args["deadline"]
+                data["deadline"] = request.args["deadline"]+':00'
                 data["srcendpoint"] = request.args["srcendpoint"]
                 data["dstendpoint"] = request.args["dstendpoint"]
                 data["dataquantity"] = request.args["dataquantity"]
@@ -606,9 +638,8 @@ class RestAPI(SingletonMixin):
         except: raise Exception('Invalid Rule Parameters')
 
         data = {rule:data}
-        print data
 
-        policy = EndpointConnectionPolicy(flask_login.current_user.id,data)
+        policy = EndpointConnectionPolicy(username,data)
         rule_hash = RuleManager.instance().add_rule(policy)
 
         data["hash"] = rule_hash
@@ -622,12 +653,21 @@ class RestAPI(SingletonMixin):
     @app.route('/rule/l2t',methods=['GET','POST'])
     @authorize('L2T', 'create')
     def make_L2T():
+
+        username = None
+        if request.args.get('user'):
+            username = request.args.get('user')
+        elif flask_login.current_user.id:
+            username = flask_login.current_user.id
+        else:
+            raise Exception()
+
         rule = "l2tunnel"
         data = {}
         try:
             if 'starttime' in request.args:
-                data["starttime"] = request.args["starttime"]
-                data["endtime"] = request.args["endtime"]
+                data["starttime"] = request.args["starttime"]+':00'
+                data["endtime"] = request.args["endtime"]+':00'
                 data["srcswitch"] = request.args["srcswitch"]
                 data["dstswitch"] = request.args["dstswitch"]
                 data["srcport"] = request.args["srcport"]
@@ -650,7 +690,7 @@ class RestAPI(SingletonMixin):
 
         data = {rule:data}
 
-        policy = L2TunnelPolicy(flask_login.current_user.id,data)
+        policy = L2TunnelPolicy(username,data)
         rule_hash = RuleManager.instance().add_rule(policy)
 
         data["hash"] = rule_hash
@@ -664,12 +704,21 @@ class RestAPI(SingletonMixin):
     @app.route('/rule/l2m',methods=['GET','POST'])
     @authorize('L2T', 'create')
     def make_L2M():
+ 
+        username = None
+        if request.args.get('user'):
+            username = request.args.get('user')
+        elif flask_login.current_user.id:
+            username = flask_login.current_user.id
+        else:
+            raise Exception()
+
         rule = "l2multipoint"
         data = {}
         try:
             if 'starttime' in request.args:
-                data["starttime"] = request.args["starttime"]
-                data["endtime"] = request.args["endtime"]
+                data["starttime"] = request.args["starttime"]+':00'
+                data["endtime"] = request.args["endtime"]+':00'
                 endpoints = request.args["endpoints"]
                 data["bandwidth"] = int(request.args["bandwidth"])
             elif 'starttime' in request.form:
@@ -686,7 +735,7 @@ class RestAPI(SingletonMixin):
 
         data = {rule:data}
 
-        policy = L2MultipointPolicy(flask_login.current_user.id,data)
+        policy = L2MultipointPolicy(username,data)
         rule_hash = RuleManager.instance().add_rule(policy)
 
         data["hash"] = rule_hash
@@ -701,6 +750,15 @@ class RestAPI(SingletonMixin):
     @app.route('/rule/hash/<rule_hash>', methods=['GET', 'POST'])
     @authorize('rules', 'hash')
     def get_rule_details_by_hash(rule_hash):
+
+        username = None
+        if request.args.get('user'):
+            username = request.args.get('user')
+        elif flask_login.current_user.id:
+            username = flask_login.current_user.id
+        else:
+            raise Exception()
+
         detail = None
         try:
             detail = RuleManager.instance().get_rule_details(rule_hash)
@@ -718,7 +776,7 @@ class RestAPI(SingletonMixin):
         # Deletes Rules : POST because HTML does not support DELETE Requests
         if request.method == 'POST':
             if 'action' in request.args and request.args['action'] == 'delete':
-                RuleManager.instance().remove_rule(rule_hash, flask_login.current_user.id)
+                RuleManager.instance().remove_rule(rule_hash, username)
             if 'datatype' in request.args and request.args['datatype'] == 'json':
                 return json.dumps(detail)
             return flask.redirect(flask.url_for('get_rules'))
@@ -732,10 +790,19 @@ class RestAPI(SingletonMixin):
     @app.route('/rule/all', methods=['GET', 'POST'])
     @authorize('rules', 'search')
     def get_rules():
+
+        username = None
+        if request.args.get('user'):
+            username = request.args.get('user')
+        elif flask_login.current_user.id:
+            username = flask_login.current_user.id
+        else:
+            raise Exception()
+
         # TODO: Throws exception currently
         if request.method == 'POST':
             if 'action' in request.args and request.args['action'] == 'delete':
-                RuleManager.instance().remove_all_rules(flask_login.current_user.id)
+                RuleManager.instance().remove_all_rules(username)
 
         user = flask_login.current_user.get_id()
         roles = UserManager.instance().get_user(user)['role']
@@ -754,15 +821,6 @@ class RestAPI(SingletonMixin):
             return json.dumps(rules)
 
         return flask.render_template('rules.html', rules=rules, policy=policy)
-
-    # Get a list of rules that match certain filters or a query.
-    @staticmethod
-    @app.route('/rule/search/<query>')
-    @authorize('rules', 'search')
-    def get_rule_search_by_query(query):
-        # TODO: Parse query into filters and ordering
-        return str(RuleManager.instance().get_rules(filter={query}, ordering=query))
-
 
 if __name__ == "__main__":
     def blah(param):
